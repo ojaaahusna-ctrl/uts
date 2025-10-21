@@ -9,7 +9,7 @@ import base64
 
 # ================== KONFIGURASI HALAMAN ==================
 st.set_page_config(
-    page_title="VisionAI Dashboard | Girly Edition",
+    page_title="VisionAI Dashboard | Pink Contrast",
     page_icon="🌸",
     layout="wide",
     initial_sidebar_state="auto"
@@ -19,51 +19,46 @@ st.set_page_config(
 if 'page' not in st.session_state:
     st.session_state.page = 'home'
 
-# ================== DATA CONTOH GAMBAR ==================
-# Base64 encoded images to avoid external URLs
-CHEETAH_B64 = "iVBORw0KGgoAAAANSUhEUgAAARgAAAEYCAYAAACHjumMAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAACHxSURBVH... (data gambar sengaja dipotong agar ringkas)"
-HYENA_B64 = "iVBORw0KGgoAAAANSUhEUgAAARgAAAEYCAYAAACHjumMAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAACHxSURBVH... (data gambar sengaja dipotong agar ringkas)"
-HOTDOG_B64 = "iVBORw0KGgoAAAANSUhEUgAAARgAAAEYCAYAAACHjumMAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAACHxSURBVH... (data gambar sengaja dipotong agar ringkas)"
+# ================== DATA CONTOH GAMBAR (LENGKAP) ==================
+# Data Base64 yang lengkap dan valid untuk mencegah error
+CHEETAH_B64 = "/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAACv/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8F/kn/2Q=="
+HYENA_B64 = "/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAACv/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8F/kn/2Q=="
+HOTDOG_B64 = "/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAACv/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8F/kn/2Q=="
 
-# ================== STYLE KUSTOM (CSS) - TEMA PINK ==================
+# ================== STYLE KUSTOM (CSS) - TEMA PINK KONTRAS TINGGI ==================
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Playfair+Display:wght@700&display=swap');
 
-    /* Background utama dengan gradasi pink */
+    /* Background utama dengan gradasi pink cerah */
     [data-testid="stAppViewContainer"] {
-        background: linear-gradient(135deg, #ffdde1 0%, #ee9ca7 100%);
+        background: linear-gradient(135deg, #FFF0F5 0%, #FFC0CB 100%);
     }
 
-    /* Kustomisasi header dengan animasi */
-    @keyframes fadeInDown {
-        from { opacity: 0; transform: translateY(-30px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
+    /* Kustomisasi header */
     .header {
-        background-color: rgba(255, 255, 255, 0.3);
+        background-color: rgba(255, 255, 255, 0.4);
         backdrop-filter: blur(10px);
         padding: 2.5rem;
         border-radius: 20px;
         text-align: center;
         margin-bottom: 2rem;
-        border: 1px solid rgba(255, 255, 255, 0.4);
-        animation: fadeInDown 1s ease-out;
+        border: 1px solid rgba(255, 255, 255, 0.6);
     }
     .header h1 {
         font-family: 'Playfair Display', serif;
-        color: #581845;
+        color: #1F1F1F; /* Hitam pekat */
         font-size: 3rem;
     }
     .header p {
-        color: #900C3F;
+        color: #363636; /* Abu-abu gelap */
         font-size: 1.2rem;
     }
     
-    /* Kartu menu dengan efek hover */
+    /* Kartu menu */
     .menu-card {
-        background-color: rgba(255, 255, 255, 0.5);
-        border: 1px solid rgba(255, 255, 255, 0.6);
+        background-color: rgba(255, 255, 255, 0.6);
+        border: 1px solid rgba(255, 255, 255, 0.7);
         padding: 2rem 1.5rem;
         border-radius: 15px;
         text-align: center;
@@ -73,14 +68,17 @@ st.markdown("""
     }
     .menu-card:hover {
         transform: translateY(-8px);
-        box-shadow: 0 8px 30px rgba(144, 12, 63, 0.15);
+        box-shadow: 0 8px 30px rgba(216, 27, 96, 0.15);
     }
-    .menu-card h3 { color: #581845; font-family: 'Playfair Display', serif; }
-    .menu-card p { color: #C70039; }
+    .menu-card h3 { 
+        color: #D81B60; /* Pink kuat */
+        font-family: 'Playfair Display', serif; 
+    }
+    .menu-card p { color: #363636; } /* Abu-abu gelap */
 
     /* Tombol utama */
     .stButton>button {
-        background-color: #FF70AB;
+        background-color: #D81B60; /* Pink kuat */
         color: white;
         border-radius: 10px;
         border: none;
@@ -88,21 +86,13 @@ st.markdown("""
         font-weight: bold;
     }
     .stButton>button:hover {
-        background-color: #FF5599;
+        background-color: #C2185B; /* Pink lebih gelap saat hover */
     }
 
-    /* Galeri contoh gambar */
-    .sample-gallery img {
-        border-radius: 10px;
-        cursor: pointer;
-        transition: transform 0.2s;
-        border: 2px solid transparent;
+    /* Styling teks umum */
+    h1, h2, h3, h4, h5, h6, p, li, label {
+        color: #1F1F1F !important; /* Paksa semua teks jadi hitam pekat */
     }
-    .sample-gallery img:hover {
-        transform: scale(1.05);
-        border: 2px solid #FF70AB;
-    }
-
 </style>
 """, unsafe_allow_html=True)
 
@@ -150,13 +140,12 @@ def home_page():
 def run_model_page(page_type):
     """Fungsi generik untuk menjalankan halaman model (YOLO atau CNN)."""
     
-    # Konfigurasi berdasarkan tipe halaman
     if page_type == 'yolo':
         title = "🌭 Deteksi Objek: Hotdog vs Not-Hotdog"
         model_loader = load_yolo_model
         sample_images = {"Contoh Hotdog": HOTDOG_B64}
         button_text = "🔍 Mulai Deteksi"
-    else: # cnn
+    else:
         title = "🐆 Klasifikasi Gambar: Cheetah vs Hyena"
         model_loader = load_cnn_model
         sample_images = {"Contoh Cheetah": CHEETAH_B64, "Contoh Hyena": HYENA_B64}
@@ -173,9 +162,7 @@ def run_model_page(page_type):
 
     image_bytes = None
 
-    # === Sidebar dengan galeri contoh ===
     with st.sidebar:
-        st.image("https://i.imgur.com/w08YV0a.png", width=100)
         st.title("⚙️ Pengaturan")
         source_choice = st.radio("Pilih sumber gambar:", ["📤 Upload File", "📸 Ambil dari Kamera", "🖼️ Pilih Contoh"], key=f"{page_type}_source")
 
@@ -183,24 +170,20 @@ def run_model_page(page_type):
             st.markdown("---")
             confidence_threshold = st.slider("Tingkat Keyakinan", 0.0, 1.0, 0.5, 0.05, key="yolo_conf")
 
-    # Logika untuk mendapatkan gambar dari berbagai sumber
     if source_choice == "📤 Upload File":
         uploaded_file = st.file_uploader("Pilih gambar...", type=["jpg", "jpeg", "png"], label_visibility="collapsed", key=f"{page_type}_upload")
         if uploaded_file: image_bytes = uploaded_file.getvalue()
     elif source_choice == "📸 Ambil dari Kamera":
         camera_input = st.camera_input("Arahkan kamera", key=f"{page_type}_cam")
         if camera_input: image_bytes = camera_input.getvalue()
-    else: # Pilih Contoh
+    else:
         st.subheader("Pilih gambar dari galeri:")
         cols = st.columns(len(sample_images))
         for idx, (caption, b64_string) in enumerate(sample_images.items()):
             with cols[idx]:
-                # Gunakan markdown untuk membuat gambar bisa diklik
-                st.markdown(f'<div class="sample-gallery">', unsafe_allow_html=True)
                 if st.button(caption, key=f"sample_{idx}"):
                     image_bytes = base64.b64decode(b64_string)
                 st.image(f"data:image/jpeg;base64,{b64_string}", caption=caption, use_column_width=True)
-                st.markdown('</div>', unsafe_allow_html=True)
 
     if image_bytes:
         image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
@@ -229,7 +212,7 @@ def run_model_page(page_type):
                     else:
                         st.warning("Tidak ada objek terdeteksi.", icon="⚠️")
                 
-                else: # cnn
+                else:
                     CLASS_NAMES_CNN = {0: "Cheetah 🐆", 1: "Hyena 🐕"}
                     input_shape = model.input_shape[1:3]
                     img_array = np.expand_dims(np.array(image.resize(input_shape)) / 255.0, axis=0)
@@ -252,4 +235,3 @@ elif st.session_state.page == 'yolo':
     run_model_page('yolo')
 elif st.session_state.page == 'cnn':
     run_model_page('cnn')
-

@@ -1,5 +1,5 @@
 import streamlit as st
-from ultranalytics import YOLO
+from ultralytics import YOLO
 import tensorflow as tf
 from PIL import Image
 import numpy as np

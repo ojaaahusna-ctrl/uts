@@ -15,11 +15,15 @@ st.set_page_config(
 )
 
 # ================== INITIALIZE SESSION STATE ==================
+# Inisialisasi state untuk navigasi dan penyimpanan hasil
 if 'page' not in st.session_state:
     st.session_state.page = 'home'
+if 'yolo_result' not in st.session_state:
+    st.session_state.yolo_result = None
+if 'cnn_result' not in st.session_state:
+    st.session_state.cnn_result = None
 
 # ================== STYLE KUSTOM (CSS) ==================
-# CSS diperbarui untuk tampilan visual yang lebih menarik
 st.markdown("""
 <style>
     /* Mengubah font utama */
@@ -175,7 +179,6 @@ def render_probability_chart(predictions, class_names):
     chart_html += '</div>'
     st.markdown(chart_html, unsafe_allow_html=True)
 
-
 # ================== FUNGSI UNTUK SETIAP HALAMAN ==================
 def home_page():
     st.markdown("""
@@ -187,12 +190,12 @@ def home_page():
     st.subheader("Pilih Tugas yang Ingin Dilakukan:")
     col1, col2 = st.columns(2)
     with col1:
-        st.markdown('<div class="menu-card"><h3>🌭 Deteksi Objek</h3><p>Gunakan model YOLO untuk mendeteksi Hotdog vs Not-Hotdog dalam sebuah gambar.</p></div>', unsafe_allow_html=True)
+        st.markdown('<div class="menu-card"><h3>🌭 Deteksi Objek</h3><p>Gunakan model YOLO untuk mendeteksi Hotdog vs Not-Hotdog.</p></div>', unsafe_allow_html=True)
         if st.button("Mulai Deteksi", use_container_width=True, key="yolo_nav"):
             st.session_state.page = 'yolo'
             st.rerun()
     with col2:
-        st.markdown('<div class="menu-card"><h3>🐆 Klasifikasi Gambar</h3><p>Gunakan model CNN untuk mengklasifikasikan gambar antara Cheetah dan Hyena.</p></div>', unsafe_allow_html=True)
+        st.markdown('<div class="menu-card"><h3>🐆 Klasifikasi Gambar</h3><p>Gunakan model CNN untuk mengklasifikasikan Cheetah dan Hyena.</p></div>', unsafe_allow_html=True)
         if st.button("Mulai Klasifikasi", use_container_width=True, key="cnn_nav"):
             st.session_state.page = 'cnn'
             st.rerun()
@@ -202,48 +205,64 @@ def home_page():
 def yolo_page():
     if st.button("⬅️ Kembali ke Menu Utama"):
         st.session_state.page = 'home'
+        st.session_state.yolo_result = None # Hapus hasil saat kembali
         st.rerun()
     st.header("🌭 Deteksi Objek: Hotdog vs Not-Hotdog")
     with st.sidebar:
         st.image("https://i.imgur.com/G4f4bJb.png", width=100)
         st.title("⚙️ Pengaturan Deteksi")
         st.markdown("---")
-        source_choice = st.radio("Pilih sumber gambar:", ["📤 Upload File", "📸 Ambil dari Kamera"], key="yolo_source")
+        source_choice = st.radio("Pilih sumber gambar:", ["📤 Upload File", "📸 Ambil dari Kamera"], key="yolo_source", on_change=lambda: setattr(st.session_state, 'yolo_result', None))
         confidence_threshold = st.slider("Tingkat Keyakinan", 0.0, 1.0, 0.5, 0.05, key="yolo_conf")
+    
     yolo_model = load_yolo_model()
     if not yolo_model: return
+
     image_bytes = None
     if source_choice == "📤 Upload File":
-        uploaded_file = st.file_uploader("Pilih gambar...", type=["jpg", "jpeg", "png"], label_visibility="collapsed", key="yolo_upload")
+        uploaded_file = st.file_uploader("Pilih gambar...", type=["jpg", "jpeg", "png"], label_visibility="collapsed", key="yolo_upload", on_change=lambda: setattr(st.session_state, 'yolo_result', None))
         if uploaded_file: image_bytes = uploaded_file.getvalue()
     else:
-        camera_input = st.camera_input("Arahkan kamera", key="yolo_cam")
+        camera_input = st.camera_input("Arahkan kamera", key="yolo_cam", on_change=lambda: setattr(st.session_state, 'yolo_result', None))
         if camera_input: image_bytes = camera_input.getvalue()
+
     if image_bytes:
         image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
         col1, col2 = st.columns(2)
         with col1:
             st.subheader("🖼️ Gambar Asli")
             st.image(image, use_column_width=True)
+        
+        # Area hasil deteksi
         with col2:
             st.subheader("🎯 Hasil Deteksi")
-            # Placeholder untuk hasil
-            result_placeholder = st.empty()
-            result_placeholder.info("Hasil deteksi akan muncul di sini setelah diproses.")
+            if st.session_state.yolo_result is None:
+                st.info("Hasil deteksi akan muncul di sini setelah diproses.")
+            else:
+                st.image(st.session_state.yolo_result['image'], use_column_width=True)
+
         if st.button("🔍 Mulai Deteksi", type="primary", use_container_width=True):
             with st.spinner("🧠 Menganalisis gambar..."):
                 results = yolo_model(image, conf=confidence_threshold)
                 result_img = results[0].plot()
                 result_img_rgb = cv2.cvtColor(result_img, cv2.COLOR_BGR2RGB)
-                with result_placeholder.container():
-                    st.image(result_img_rgb, use_column_width=True)
+                # Simpan hasil ke session state
+                st.session_state.yolo_result = {
+                    'image': result_img_rgb,
+                    'boxes': results[0].boxes,
+                    'names': yolo_model.names
+                }
+                st.rerun()
+        
+        # Tampilkan detail jika ada hasil
+        if st.session_state.yolo_result:
             st.markdown("---")
             st.subheader("📋 Detail Deteksi")
             with st.container(border=True):
-                boxes = results[0].boxes
-                if len(boxes) > 0:
-                    for i, box in enumerate(boxes):
-                        class_name = yolo_model.names[int(box.cls)]
+                result_data = st.session_state.yolo_result
+                if len(result_data['boxes']) > 0:
+                    for i, box in enumerate(result_data['boxes']):
+                        class_name = result_data['names'][int(box.cls)]
                         confidence = box.conf[0]
                         st.write(f"**Objek {i+1}:** `{class_name}` | **Keyakinan:** `{confidence:.2%}`")
                 else:
@@ -252,34 +271,51 @@ def yolo_page():
 def cnn_page():
     if st.button("⬅️ Kembali ke Menu Utama"):
         st.session_state.page = 'home'
+        st.session_state.cnn_result = None # Hapus hasil saat kembali
         st.rerun()
     st.header("🐆 Klasifikasi Gambar: Cheetah vs Hyena")
     with st.sidebar:
         st.image("https://i.imgur.com/G4f4bJb.png", width=100)
         st.title("⚙️ Pengaturan Klasifikasi")
         st.markdown("---")
-        source_choice = st.radio("Pilih sumber gambar:", ["📤 Upload File", "📸 Ambil dari Kamera"], key="cnn_source")
+        source_choice = st.radio("Pilih sumber gambar:", ["📤 Upload File", "📸 Ambil dari Kamera"], key="cnn_source", on_change=lambda: setattr(st.session_state, 'cnn_result', None))
+
     cnn_model = load_cnn_model()
     if not cnn_model: return
     CLASS_NAMES_CNN = {0: "Cheetah 🐆", 1: "Hyena 🐕"}
+
     image_bytes = None
     if source_choice == "📤 Upload File":
-        uploaded_file = st.file_uploader("Pilih gambar...", type=["jpg", "jpeg", "png"], label_visibility="collapsed", key="cnn_upload")
+        uploaded_file = st.file_uploader("Pilih gambar...", type=["jpg", "jpeg", "png"], label_visibility="collapsed", key="cnn_upload", on_change=lambda: setattr(st.session_state, 'cnn_result', None))
         if uploaded_file: image_bytes = uploaded_file.getvalue()
     else:
-        camera_input = st.camera_input("Arahkan kamera", key="cnn_cam")
+        camera_input = st.camera_input("Arahkan kamera", key="cnn_cam", on_change=lambda: setattr(st.session_state, 'cnn_result', None))
         if camera_input: image_bytes = camera_input.getvalue()
+    
     if image_bytes:
         image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
         col1, col2 = st.columns([0.6, 0.4])
         with col1:
             st.subheader("🖼️ Gambar Asli")
             st.image(image, use_column_width=True)
+        
         with col2:
             st.subheader("🎯 Hasil Prediksi")
-            result_placeholder = st.empty()
-            with result_placeholder.container():
-                 st.info("Hasil prediksi akan muncul di sini.")
+            if st.session_state.cnn_result is None:
+                st.info("Hasil prediksi akan muncul di sini.")
+            else:
+                # Render hasil dari session state
+                res = st.session_state.cnn_result
+                st.markdown(f"""
+                <div class="result-card">
+                    <h4>Hasil Utama</h4>
+                    <p class="main-prediction">{res['name']}</p>
+                    <p class="confidence">Keyakinan: {res['confidence']:.2%}</p>
+                    <h4>Distribusi Probabilitas</h4>
+                </div>
+                """, unsafe_allow_html=True)
+                render_probability_chart(res['predictions'], CLASS_NAMES_CNN)
+
         if st.button("🔮 Lakukan Prediksi", type="primary", use_container_width=True):
             with st.spinner("🧠 Memproses dan memprediksi..."):
                 input_shape = cnn_model.input_shape[1:3]
@@ -287,23 +323,14 @@ def cnn_page():
                 img_array = np.array(img_resized) / 255.0
                 img_array = np.expand_dims(img_array, axis=0)
                 predictions = cnn_model.predict(img_array, verbose=0)
-                confidence = float(np.max(predictions))
-                predicted_class_idx = int(np.argmax(predictions))
-                predicted_class_name = CLASS_NAMES_CNN.get(predicted_class_idx, f"Kelas {predicted_class_idx}")
                 
-                # Tampilkan hasil di placeholder
-                with result_placeholder.container():
-                    st.markdown(f"""
-                    <div class="result-card">
-                        <h4>Hasil Utama</h4>
-                        <p class="main-prediction">{predicted_class_name}</p>
-                        <p class="confidence">Keyakinan: {confidence:.2%}</p>
-                        <h4>Distribusi Probabilitas</h4>
-                    </div>
-                    """, unsafe_allow_html=True)
-                    # Render bar chart kustom
-                    render_probability_chart(predictions, CLASS_NAMES_CNN)
-
+                # Simpan hasil ke session_state
+                st.session_state.cnn_result = {
+                    'name': CLASS_NAMES_CNN.get(int(np.argmax(predictions))),
+                    'confidence': float(np.max(predictions)),
+                    'predictions': predictions
+                }
+                st.rerun()
 
 # ================== ROUTER UTAMA APLIKASI ==================
 if st.session_state.page == 'home':

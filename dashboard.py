@@ -4,6 +4,7 @@ import tensorflow as tf
 from PIL import Image
 import numpy as np
 import cv2  # OpenCV tetap dibutuhkan oleh ultralytics untuk beberapa operasi
+import io   # <--- Tambahkan import ini untuk mengatasi NameError
 
 # ================== KONFIGURASI HALAMAN ==================
 # Menggunakan ikon dan layout yang lebih menarik
@@ -168,7 +169,7 @@ if "YOLO" in model_choice:
             col1, col2 = st.columns(2)
             with col1:
                 st.subheader("🖼️ Gambar Asli")
-                st.image(image, use_container_width=True, caption="Gambar yang di-upload")
+                st.image(image, use_column_width=True, caption="Gambar yang di-upload")
 
             # Tombol untuk memulai deteksi
             if st.button("🔍 Mulai Deteksi", type="primary", use_container_width=True):
@@ -179,7 +180,7 @@ if "YOLO" in model_choice:
 
                     with col2:
                         st.subheader("🎯 Hasil Deteksi")
-                        st.image(result_img_rgb, use_container_width=True, caption="Gambar dengan deteksi")
+                        st.image(result_img_rgb, use_column_width=True, caption="Gambar dengan deteksi")
                 
                 # Menampilkan hasil dalam container yang lebih rapi
                 st.markdown("---")
@@ -218,7 +219,7 @@ else: # CNN SECTION
             col1, col2 = st.columns([0.6, 0.4]) # Kolom hasil lebih kecil
             with col1:
                 st.subheader("🖼️ Gambar Asli")
-                st.image(image, use_container_width=True, caption="Gambar yang akan diklasifikasi")
+                st.image(image, use_column_width=True, caption="Gambar yang akan diklasifikasi")
 
             # Tombol untuk memulai prediksi
             if st.button("🔮 Lakukan Prediksi", type="primary", use_container_width=True):
@@ -257,3 +258,4 @@ else: # CNN SECTION
                     for i, prob in enumerate(predictions[0]):
                         class_name = CLASS_NAMES_CNN.get(i, f"Kelas {i}")
                         st.progress(float(prob), text=f"{class_name}: {prob:.2%}")
+

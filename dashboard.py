@@ -4,6 +4,8 @@ import tensorflow as tf
 from PIL import Image
 import numpy as np
 import cv2
+import io
+import base64
 
 # ================== KONFIGURASI HALAMAN ==================
 st.set_page_config(
@@ -22,34 +24,22 @@ if "camera_active" not in st.session_state:
 # ================== MODEL INISIALISASI ==================
 @st.cache_resource
 def load_models():
-    # Load YOLO model
-    yolo_model = YOLO("yolov8n.pt")  # Ganti jika pakai model YOLO lain
-
-    # Load CNN model
-    try:
-        cnn_model = tf.keras.models.load_model("compressed.h5")
-    except Exception as e:
-        st.warning("⚠️ Model CNN 'compressed.h5' belum ditemukan atau gagal dimuat.")
-        cnn_model = None
-
+    yolo_model = YOLO("best.pt")  # ganti sesuai model YOLO kamu
+    cnn_model = tf.keras.models.load_model("compressed.h5")  # ganti nama modelmu
     return yolo_model, cnn_model
 
 
 yolo_model, cnn_model = load_models()
 
 # ================== FUNGSI PENGOLAHAN GAMBAR ==================
-IMG_SIZE = (128, 128)  # Ukuran input sesuai model CNN kamu
+IMG_SIZE = (128, 128)  # ukuran input CNN kamu
 
 def predict_cnn(image):
-    if cnn_model is None:
-        return None, None
     img_resized = image.resize(IMG_SIZE)
     img_array = np.array(img_resized) / 255.0
     img_array = np.expand_dims(img_array, axis=0)
     prediction = cnn_model.predict(img_array)
-    predicted_class = np.argmax(prediction)
-    confidence = np.max(prediction) * 100
-    return predicted_class, confidence
+    return prediction
 
 def detect_yolo(image):
     results = yolo_model(image)
@@ -69,13 +59,12 @@ st.sidebar.info("Gunakan **YOLOv8** untuk deteksi objek dan **CNN** untuk klasif
 
 # ================== TAMPILAN UTAMA ==================
 st.title("👁️ VisionAI Dashboard")
-st.markdown("### Smart Detection & Classification System")
+st.markdown("### **Smart Detection & Classification System**")
 st.write(
     """
-    Selamat datang di **VisionAI**, dashboard cerdas yang menggabungkan teknologi **YOLOv8**
-    untuk deteksi objek dan **Convolutional Neural Network (CNN)** untuk klasifikasi gambar.
-    
-    Unggah gambar atau gunakan kamera untuk menganalisis objek secara **real-time** 🔍
+    Selamat datang di **VisionAI**, dashboard yang menggabungkan teknologi **YOLOv8** untuk deteksi objek
+    dan **Convolutional Neural Network (CNN)** untuk klasifikasi gambar.  
+    Unggah gambar atau gunakan kamera untuk menganalisis objek secara **real-time**.
     """
 )
 
@@ -110,17 +99,17 @@ with col2:
         st.image(yolo_annotated, caption="Deteksi Objek (YOLOv8)", use_column_width=True)
 
         # CNN Prediction
-        predicted_class, confidence = predict_cnn(image)
-        if predicted_class is not None:
-            st.markdown("### 🧠 Prediksi CNN")
-            st.write(f"**Kelas Terdeteksi:** {predicted_class}")
-            st.write(f"**Tingkat Keyakinan:** {confidence:.2f}%")
-        else:
-            st.info("Model CNN belum dimuat, hanya deteksi YOLO yang aktif.")
+        prediction = predict_cnn(image)
+        predicted_class = np.argmax(prediction)
+        confidence = np.max(prediction) * 100
+
+        st.markdown("### 🧠 Prediksi CNN")
+        st.write(f"**Kelas Terdeteksi:** {predicted_class}")
+        st.write(f"**Tingkat Keyakinan:** {confidence:.2f}%")
 
     else:
         st.info("Silakan unggah atau ambil gambar terlebih dahulu.")
 
 # ================== FOOTER ==================
 st.markdown("---")
-st.caption("👁️ **VisionAI Dashboard** | YOLOv8 + CNN | by Ojaa Husna © 2025")
+st.caption("👁️ **VisionAI Dashboard** | YOLOv8 + CNN | by YourName © 2025")

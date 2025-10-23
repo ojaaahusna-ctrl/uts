@@ -24,7 +24,6 @@ if 'selected_image_bytes' not in st.session_state:
     st.session_state.selected_image_bytes = None
 
 # ================== STYLE KUSTOM (CSS) - TEMA "COOL MINT" (FINAL) ==================
-# --- BLOK INI TELAH DIPERBARUI UNTUK MEMPERBAIKI MASALAH TAMPILAN ---
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Playfair+Display:wght@700&display=swap');
@@ -103,8 +102,6 @@ st.markdown("""
     #home-container [data-testid="stSubheader"] { text-align: center; }
     
     
-    /* --- INI ADALAH PERBAIKAN UNTUK KOTAK HITAM (REQ TERBARU) --- */
-
     /* 6. PERBAIKAN BACKGROUND KOMPONEN (YANG JADI HITAM) */
     
     /* Background Input Teks (URL) */
@@ -112,10 +109,8 @@ st.markdown("""
         background-color: #FFFFFF !important;
         border-radius: 8px;
         border: 1px solid #B2F5EA;
-        /* Memastikan teks di dalam input juga gelap */
         color: #2D3748 !important;
     }
-    /* Memaksa placeholder (e.g., "Press Enter to apply") menjadi gelap */
     div[data-baseweb="input"] input::placeholder {
         color: #2D3748 !important;
     }
@@ -126,19 +121,18 @@ st.markdown("""
         border: 2px dashed #B2F5EA !important;
     }
     
-    /* Teks di dalam File Uploader (e.g., "Drag and drop", "Browse files") */
+    /* Teks di dalam File Uploader */
     [data-testid="stFileUploader"] section * {
         color: #2D3748 !important; 
     }
     
-    /* Label di atas File Uploader (e.g. "Pilih gambar...") */
+    /* Label di atas File Uploader */
     .stFileUploader > div > label {
         color: #2D3748 !important; 
     }
 
 </style>
 """, unsafe_allow_html=True)
-# --- AKHIR DARI BLOK YANG DIPERBARUI ---
 
 
 # ================== CACHE MODEL ==================
@@ -161,27 +155,36 @@ def clear_image_state():
     """Fungsi untuk membersihkan state gambar yang dipilih."""
     st.session_state['selected_image_bytes'] = None
     
+# --- GANTI FUNGSI reset_and_rerun LAMA ANDA DENGAN YANG INI ---
 def reset_and_rerun():
     """Merupakan kombinasi reset state kustom dan pengaturan ulang state widget."""
     clear_image_state()
     
-    # --- PERBAIKAN LOGIKA ERROR SAAT HAPUS ---
-    # Tentukan di halaman mana kita berada
-    current_page = st.session_state.get('page', 'home') # Ambil 'home' jika 'page' belum ada
+    # --- PERBAIKAN LOGIKA ERROR SAAT HAPUS (POIN 1 & 3) ---
+    current_page = st.session_state.get('page', 'home') 
     
     if current_page == 'yolo' or current_page == 'cnn':
-        # Tentukan kunci widget berdasarkan halaman saat ini
         source_key = f"{current_page}_source"
         url_key = f"{current_page}_url_input"
+        upload_key = f"{current_page}_upload" # Kunci untuk file uploader
 
-        # HANYA reset widget URL jika widget itu ada (terender)
-        # Yaitu, jika pengguna sedang memilih "Input URL Gambar"
-        if source_key in st.session_state and st.session_state[source_key] == "🔗 Input URL Gambar":
-            if url_key in st.session_state:
-                st.session_state[url_key] = ''
+        # Periksa sumber yang sedang dipilih
+        if source_key in st.session_state:
+            selected_source = st.session_state[source_key]
+
+            # 1. Jika sumbernya URL, reset text_input
+            if selected_source == "🔗 Input URL Gambar":
+                if url_key in st.session_state:
+                    st.session_state[url_key] = ''
+            
+            # 2. Jika sumbernya Upload File, reset file_uploader (INI FIX POIN 1)
+            elif selected_source == "📤 Upload File":
+                if upload_key in st.session_state:
+                    st.session_state[upload_key] = None # Mengosongkan file uploader
+    
     # --- AKHIR PERBAIKAN ---
-
     st.rerun()
+# --- AKHIR FUNGSI BARU ---
 
 
 # ================== FUNGSI HALAMAN ==================
@@ -249,6 +252,11 @@ def run_model_page(page_type):
     
     st.header(title)
     
+    # --- PENAMBAHAN INFO UNTUK CNN ---
+    if page_type == 'cnn':
+        st.info("💡 **Catatan:** Model ini hanya dilatih untuk mengenali **Cheetah** dan **Hyena**. Gambar di luar kategori ini akan ditolak jika keyakinannya di bawah ambang batas (atur di sidebar).", icon="💡")
+    # --- AKHIR PENAMBAHAN ---
+    
     # Klarifikasi Penggunaan Model (YOLO)
     if page_type == 'yolo':
          st.info("⚠️ Model deteksi ini hanya dilatih untuk mendeteksi **Hotdog**.", icon="💡")
@@ -270,7 +278,17 @@ def run_model_page(page_type):
         if page_type == 'cnn':
             st.markdown("---")
             MIN_CONFIDENCE_THRESHOLD = st.slider("Min. Keyakinan Deteksi (CNN)", 0.0, 1.0, 0.85, 0.05, key="cnn_conf")
-            st.info(f"Gambar di bawah {MIN_CONFIDENCE_THRESHOLD:.2%} akan ditolak.")
+            
+            # --- UBAH st.info MENJADI st.warning ---
+            st.warning(f"""
+            **Gunakan slider ini untuk 'menyaring' hasil.**
+            
+            * **Nilai TINGGI:** Lebih ketat. Bagus untuk menolak gambar non-Cheetah/Hyena, tapi berisiko menolak gambar asli yang buram/sulit.
+            * **Nilai RENDAH:** Lebih longgar. Akan menerima lebih banyak gambar asli, tapi berisiko salah menerima gambar lain.
+            
+            Saat ini, prediksi di bawah **{MIN_CONFIDENCE_THRESHOLD:.2%}** akan ditolak.
+            """, icon="⚖️")
+            # --- AKHIR PERUBAHAN ---
             
         st.markdown("---")
         # Mengembalikan Kamera, Menghapus Pilih Contoh
@@ -374,7 +392,9 @@ def run_model_page(page_type):
                             for i, box in enumerate(boxes):
                                 st.success(f"**Objek {i+1}:** `{model.names[int(box.cls)]}` | **Keyakinan:** `{box.conf[0]:.2%}`", icon="✅")
                         else:
-                            st.warning("Tidak ada objek terdeteksi. Model ini hanya mencari Hotdog.", icon="⚠️") 
+                            # --- PERBAIKAN POIN 2 (Not-Hotdog) ---
+                            st.success("✅ **Hasil: Not-Hotdog.**\n\nModel tidak menemukan objek 'Hotdog' pada gambar ini.", icon="👍")
+                            # --- AKHIR PERBAIKAN ---
                 else:
                     # LOGIKA KLASIFIKASI CNN DENGAN THRESHOLDING
                     CLASS_NAMES_CNN = {0: "Cheetah 🐆", 1: "Hyena 🐕"}

@@ -28,6 +28,8 @@ for k, v in defaults.items():
         st.session_state[k] = v
 
 # ================== STYLE KUSTOM (CSS) ==================
+
+# ================== DESAIN TEMA & STYLE ==================
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Playfair+Display:wght@700&display=swap');
@@ -36,10 +38,12 @@ st.markdown("""
     background: linear-gradient(135deg, #E6FFFA 0%, #B2F5EA 100%);
     color: #2D3748; 
 }
+
 .stApp, .main, [data-testid="stSidebar"] {
     background: linear-gradient(135deg, #E6FFFA 0%, #B2F5EA 100%); 
     color: #2D3748;
 }
+
 h1, h2, h3, h4, h5, h6, p, li, label, .stMarkdown, .stText, 
 [data-testid="stMarkdownContainer"],
 .stRadio > label,
@@ -49,6 +53,7 @@ h1, h2, h3, h4, h5, h6, p, li, label, .stMarkdown, .stText,
 {
     color: #2D3748 !important; 
 }
+
 #home-container {
     display: flex;
     flex-direction: column;
@@ -57,7 +62,9 @@ h1, h2, h3, h4, h5, h6, p, li, label, .stMarkdown, .stText,
     width: 100%;
     margin-top: 1rem;
 }
+
 #home-container > div { max-width: 800px; width: 100%; }
+
 [data-testid="stSidebar"] { background-color: #F0FFF4; }
 
 .header {
@@ -68,12 +75,26 @@ h1, h2, h3, h4, h5, h6, p, li, label, .stMarkdown, .stText,
     text-align: center;
     border: 1px solid rgba(255, 255, 255, 0.8);
     margin-bottom: 2rem; 
+    animation: fadeIn 2s ease-in-out;
 }
+
 .header h1 {
     font-family: 'Playfair Display', serif;
     color: #2D3748; 
     font-size: 3rem;
+    animation: floatText 4s ease-in-out infinite;
 }
+
+@keyframes fadeIn {
+    0% { opacity: 0; transform: translateY(-10px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes floatText {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+}
+
 .menu-card {
     background-color: #FFFFFF;
     border: 1px solid #E2E8F0;
@@ -83,6 +104,12 @@ h1, h2, h3, h4, h5, h6, p, li, label, .stMarkdown, .stText,
     transition: all 0.3s ease-in-out;
     height: 100%;
 }
+
+.menu-card:hover {
+    transform: scale(1.02);
+    box-shadow: 0 8px 20px rgba(49, 151, 149, 0.2);
+}
+
 .stButton>button {
     background-color: #319795;
     color: white !important;
@@ -92,24 +119,38 @@ h1, h2, h3, h4, h5, h6, p, li, label, .stMarkdown, .stText,
     font-weight: bold;
 }
 .stButton>button:hover { background-color: #2C7A7B; }
+
 div[data-baseweb="input"], div[data-baseweb="textarea"] {
     background-color: #FFFFFF !important;
     border-radius: 8px;
     border: 1px solid #B2F5EA;
     color: #2D3748 !important;
 }
+
 [data-testid="stFileUploader"] section {
     background-color: #FFFFFF !important;
     border: 2px dashed #B2F5EA !important;
 }
+
 [data-testid="stFileUploader"] section * {
     color: #2D3748 !important; 
 }
+
 .stFileUploader > div > label {
     color: #2D3748 !important; 
 }
 </style>
 """, unsafe_allow_html=True)
+
+# ================== KONTEN DASHBOARD ==================
+st.markdown("""
+<div class="header">
+    <h1>✨ VisionCraft — From Pixels to Insights ✨</h1>
+    <p>Empowering AI to see the world, one pixel at a time.</p>
+</div>
+""", unsafe_allow_html=True)
+
+st.write("Selamat datang di versi final dashboard VisionCraft! 🚀")
 
 # ================== LOAD MODEL ==================
 @st.cache_resource(show_spinner="📦 Memuat model YOLO...")

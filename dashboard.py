@@ -5,313 +5,208 @@ from PIL import Image
 import numpy as np
 import cv2
 import io
-import base64
-import requests
-import re
 
 # ================== KONFIGURASI HALAMAN ==================
 st.set_page_config(
-    page_title="VisionAI Dashboard | Final Version",
-    page_icon="✨",
+    page_title="VisionAI Dashboard | YOLOv8 & CNN Intelligent Image Analyzer",
+    page_icon="👁️",
     layout="wide",
     initial_sidebar_state="auto"
 )
 
-# ================== INITIALIZE SESSION STATE ==================
-defaults = {
-    'page': 'home',
-    'selected_image_bytes': None,
-    'cnn_conf': 0.85
-}
-for k, v in defaults.items():
-    if k not in st.session_state:
-        st.session_state[k] = v
+# ================== INISIALISASI SESSION STATE ==================
+if 'page' not in st.session_state:
+    st.session_state.page = 'home'
+if 'cnn_conf' not in st.session_state:
+    st.session_state.cnn_conf = 0.85
+if 'need_rerun' not in st.session_state:
+    st.session_state.need_rerun = False
 
-# ================== STYLE KUSTOM (CSS) ==================
+# ================== CSS KHUSUS ==================
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Playfair+Display:wght@700&display=swap');
-
 [data-testid="stAppViewContainer"] {
-    background: linear-gradient(135deg, #E6FFFA 0%, #B2F5EA 100%);
-    color: #2D3748; 
+    background: linear-gradient(180deg, #eef2f3, #ffffff);
 }
-.stApp, .main, [data-testid="stSidebar"] {
-    background: linear-gradient(135deg, #E6FFFA 0%, #B2F5EA 100%); 
-    color: #2D3748;
+[data-testid="stSidebar"] {
+    background-color: #f9fafb;
 }
-h1, h2, h3, h4, h5, h6, p, li, label, .stMarkdown, .stText, 
-[data-testid="stMarkdownContainer"],
-.stRadio > label,
-[data-testid="stMetricLabel"], 
-[data-testid="stMetricValue"], 
-[data-testid="stAlert"]
-{
-    color: #2D3748 !important; 
+h1, h2, h3, h4 {
+    color: #2C3E50;
+    font-weight: 700;
 }
-#home-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    width: 100%;
-    margin-top: 1rem;
+.upload-text {
+    color: #6b7280;
+    font-size: 15px;
+    margin-top: 8px;
 }
-#home-container > div { max-width: 800px; width: 100%; }
-[data-testid="stSidebar"] { background-color: #F0FFF4; }
-
-.header {
-    background-color: rgba(255, 255, 255, 0.5);
-    backdrop-filter: blur(10px);
-    padding: 2.5rem;
-    border-radius: 20px;
-    text-align: center;
-    border: 1px solid rgba(255, 255, 255, 0.8);
-    margin-bottom: 2rem; 
-}
-.header h1 {
-    font-family: 'Playfair Display', serif;
-    color: #2D3748; 
-    font-size: 3rem;
-}
-.menu-card {
-    background-color: #FFFFFF;
-    border: 1px solid #E2E8F0;
-    padding: 2rem 1.5rem;
-    border-radius: 15px;
-    text-align: center;
-    transition: all 0.3s ease-in-out;
-    height: 100%;
-}
-.stButton>button {
-    background-color: #319795;
+.btn-primary {
+    background-color: #2563eb !important;
     color: white !important;
-    border-radius: 10px;
-    border: none;
-    padding: 10px 20px;
-    font-weight: bold;
+    border-radius: 10px !important;
 }
-.stButton>button:hover { background-color: #2C7A7B; }
-div[data-baseweb="input"], div[data-baseweb="textarea"] {
-    background-color: #FFFFFF !important;
-    border-radius: 8px;
-    border: 1px solid #B2F5EA;
-    color: #2D3748 !important;
-}
-[data-testid="stFileUploader"] section {
-    background-color: #FFFFFF !important;
-    border: 2px dashed #B2F5EA !important;
-}
-[data-testid="stFileUploader"] section * {
-    color: #2D3748 !important; 
-}
-.stFileUploader > div > label {
-    color: #2D3748 !important; 
+.btn-primary:hover {
+    background-color: #1e40af !important;
 }
 </style>
 """, unsafe_allow_html=True)
 
-# ================== LOAD MODEL ==================
-@st.cache_resource(show_spinner="📦 Memuat model YOLO...")
-def load_yolo_model():
-    try:
-        return YOLO("model/best.pt")
-    except Exception as e:
-        st.error(f"❌ Gagal memuat model YOLO: {e}", icon="🔥")
-        return None
+# ================== CACHE MODEL ==================
+@st.cache_resource(show_spinner="🚀 Memuat model YOLOv8...")
+def load_yolo():
+    return YOLO("model/best.pt")
 
-@st.cache_resource(show_spinner="📦 Memuat model CNN...")
-def load_cnn_model():
-    try:
-        return tf.keras.models.load_model("model/compressed.h5", compile=False)
-    except Exception as e:
-        st.error(f"❌ Gagal memuat model CNN: {e}", icon="🔥")
-        return None
+@st.cache_resource(show_spinner="🧠 Memuat model CNN...")
+def load_cnn():
+    return tf.keras.models.load_model("model/compressed.h5", compile=False)
 
-# ================== UTILITAS ==================
+# ================== FUNGSI ==================
 def clear_image_state():
-    st.session_state['selected_image_bytes'] = None
+    keys = ['uploaded_image', 'camera_image', 'prediction', 'cnn_prediction', 'source_key']
+    for k in keys:
+        st.session_state.pop(k, None)
+    st.session_state.need_rerun = True
 
-def reset_and_rerun():
-    """Reset state dengan aman dan hindari loop."""
-    clear_image_state()
-    current_page = st.session_state.get('page', 'home')
-    if current_page not in ['yolo', 'cnn']:
-        return
-    st.rerun()
-
-# ================== HALAMAN HOME ==================
+# ================== HOME PAGE ==================
 def home_page():
-    st.markdown('<div id="home-container">', unsafe_allow_html=True)
+    st.title("👁️ VisionAI Dashboard")
     st.markdown("""
-    <div class="header">
-        <h1>✨ VisionAI Dashboard ✨</h1>
-        <p>Platform Interaktif untuk Deteksi & Klasifikasi Gambar</p>
-    </div>
-    """, unsafe_allow_html=True)
-    st.subheader("Pilih Tugas yang Ingin Dilakukan:", anchor=False)
+    ### YOLOv8 & CNN Intelligent Image Analyzer  
+    Platform visual interaktif berbasis kecerdasan buatan untuk deteksi dan klasifikasi citra secara **real-time**.
+    
+    ---
+    """)
 
     col1, col2 = st.columns(2)
     with col1:
-        st.markdown('<div class="menu-card"><h3>🌭 Deteksi Objek</h3><p>Gunakan model YOLO untuk mendeteksi Hotdog vs Not-Hotdog.</p></div>', unsafe_allow_html=True)
-        if st.button("Mulai Deteksi", use_container_width=True, key="yolo_nav"):
-            st.session_state.page = 'yolo'
-            clear_image_state()
-            st.rerun()
+        st.image("https://cdn.dribbble.com/users/244516/screenshots/4860168/ai_camera.gif", use_container_width=True)
     with col2:
-        st.markdown('<div class="menu-card"><h3>🐆 Klasifikasi Gambar</h3><p>Gunakan model CNN untuk mengklasifikasikan Cheetah dan Hyena.</p></div>', unsafe_allow_html=True)
-        if st.button("Mulai Klasifikasi", use_container_width=True, key="cnn_nav"):
+        st.markdown("""
+        #### 🚀 Fitur Utama
+        - **Object Detection (YOLOv8):** deteksi objek secara cepat dari kamera atau file.  
+        - **Image Classification (CNN):** mengenali kategori gambar dengan akurasi tinggi.  
+        - **Live Camera Mode:** uji deteksi secara langsung dari webcam.  
+        - **Modern UI:** tampilan interaktif dan responsif untuk eksperimen AI visual.
+        """)
+
+    st.markdown("### 🔍 Pilih Mode Analisis:")
+    col3, col4 = st.columns(2)
+    with col3:
+        if st.button("📸 Deteksi Objek (YOLOv8)", use_container_width=True, type="primary"):
+            st.session_state.page = 'yolo'
+            st.rerun()
+    with col4:
+        if st.button("🧩 Klasifikasi Gambar (CNN)", use_container_width=True, type="primary"):
             st.session_state.page = 'cnn'
-            clear_image_state()
             st.rerun()
 
-    st.markdown("---")
-    st.info("Proyek ini dibuat oleh **Raudhatul Husna** sebagai bagian dari Ujian Tengah Semester.", icon="🎓")
-    st.markdown('</div>', unsafe_allow_html=True)
+# ================== YOLO PAGE ==================
+def yolo_page():
+    st.title("📸 Object Detection (YOLOv8)")
+    yolo_model = load_yolo()
 
-# ================== HALAMAN MODEL ==================
-def run_model_page(page_type):
-    if page_type == 'yolo':
-        title = "🌭 Deteksi Objek: Hotdog vs Not-Hotdog"
-        model_loader = load_yolo_model
-        button_text = "🔍 Mulai Deteksi"
-    else:
-        title = "🐆 Klasifikasi Gambar: Cheetah vs Hyena"
-        model_loader = load_cnn_model
-        button_text = "🔮 Lakukan Prediksi"
+    st.markdown('<p class="upload-text">Unggah gambar atau gunakan kamera untuk mendeteksi objek.</p>', unsafe_allow_html=True)
 
-    st.button("⬅️ Kembali ke Menu Utama", on_click=lambda: (st.session_state.update({'page':'home'}), clear_image_state(), st.rerun()))
-    st.header(title)
+    col1, col2 = st.columns([2, 1])
 
-    if page_type == 'cnn':
-        st.info("💡 Model ini hanya mengenali **Cheetah** dan **Hyena**. Gunakan slider di sidebar untuk atur ambang keyakinan.", icon="💡")
-    if page_type == 'yolo':
-        st.info("⚠️ Model ini hanya dilatih untuk mendeteksi **Hotdog**.", icon="🍔")
+    with col1:
+        uploaded_file = st.file_uploader("📂 Upload Gambar", type=["jpg", "jpeg", "png"], key="yolo_uploader")
+        if uploaded_file:
+            st.session_state.uploaded_image = Image.open(uploaded_file)
+            st.session_state.source_key = "upload"
 
-    model = model_loader()
-    if not model: return
+        st.divider()
+        camera_photo = st.camera_input("📷 Ambil Gambar", key="yolo_camera")
+        if camera_photo:
+            st.session_state.camera_image = Image.open(camera_photo)
+            st.session_state.source_key = "camera"
 
-    image_bytes = None
-    source_key = f"{page_type}_source"
-    upload_key = f"{page_type}_upload"
-    url_key = f"{page_type}_url_input"
-    cam_key = f"{page_type}_cam"
+    with col2:
+        st.subheader("⚙️ Pengaturan")
+        conf = st.slider("Confidence Threshold", 0.1, 1.0, 0.5, 0.05, key="yolo_conf")
+        st.info("💡 Gunakan nilai kecil (mis. 0.3) untuk deteksi lebih sensitif.")
+        st.divider()
+        if st.button("🔙 Kembali ke Beranda", use_container_width=True):
+            st.session_state.page = 'home'
+            st.rerun()
 
-    with st.sidebar:
-        st.title("⚙️ Pengaturan")
-        st.markdown("---")
+    source_image = None
+    if st.session_state.get("source_key") == "upload":
+        source_image = st.session_state.uploaded_image
+    elif st.session_state.get("source_key") == "camera":
+        source_image = st.session_state.camera_image
 
-        if page_type == 'cnn':
-            st.session_state.cnn_conf = st.slider("Min. Keyakinan (CNN)", 0.0, 1.0, st.session_state.cnn_conf, 0.05)
-            st.warning(f"Hasil di bawah {st.session_state.cnn_conf:.0%} akan ditolak.", icon="⚖️")
+    if source_image is not None:
+        st.image(source_image, caption="Gambar Asli", use_container_width=True)
+        img_array = np.array(source_image)
+        results = yolo_model(img_array, conf=conf)
 
-        if page_type == 'yolo':
-            confidence_threshold = st.slider("Tingkat Keyakinan (YOLO)", 0.0, 1.0, 0.5, 0.05, key="yolo_conf")
+        plot_result = results[0].plot()
+        if plot_result is not None:
+            result_img_rgb = cv2.cvtColor(plot_result, cv2.COLOR_BGR2RGB)
+            st.image(result_img_rgb, caption="Hasil Deteksi", use_container_width=True)
+        else:
+            st.warning("⚠️ Tidak ada objek terdeteksi.")
 
-        source_choice = st.radio("Pilih sumber gambar:", ["📤 Upload File", "📸 Ambil dari Kamera", "🔗 Input URL Gambar"], key=source_key)
+        st.divider()
+        c1, c2 = st.columns(2)
+        with c1:
+            if st.button("🗑️ Hapus Gambar", use_container_width=True):
+                clear_image_state()
+        with c2:
+            st.download_button("💾 Simpan Hasil", data=cv2.imencode('.jpg', result_img_rgb)[1].tobytes(),
+                               file_name="hasil_deteksi.jpg", mime="image/jpeg", use_container_width=True)
 
-        if source_choice == "📤 Upload File":
-            uploaded_file = st.file_uploader("Pilih gambar...", type=["jpg", "jpeg", "png"], label_visibility="collapsed", key=upload_key)
-            if uploaded_file:
-                image_bytes = uploaded_file.getvalue()
-                st.session_state['selected_image_bytes'] = image_bytes
+# ================== CNN PAGE ==================
+def cnn_page():
+    st.title("🧩 Image Classification (CNN)")
+    cnn_model = load_cnn()
 
-        elif source_choice == "📸 Ambil dari Kamera":
-            camera_input = st.camera_input("Arahkan kamera", key=cam_key)
-            if camera_input:
-                image_bytes = camera_input.getvalue()
-                st.session_state['selected_image_bytes'] = image_bytes
-            st.info("⚠️ Kamera hanya berfungsi di koneksi HTTPS.", icon="🛡️")
+    st.markdown('<p class="upload-text">Unggah gambar untuk klasifikasi berbasis CNN.</p>', unsafe_allow_html=True)
 
-        elif source_choice == "🔗 Input URL Gambar":
-            url = st.text_input("Masukkan URL Gambar:", value=st.session_state.get(url_key, ''), key=url_key)
-            if url:
-                if not re.match(r'https?://[^\s/$.?#].[^\s]*$', url):
-                    st.error("❌ URL tidak valid.", icon="⚠️")
-                else:
-                    try:
-                        with st.spinner("Mengunduh gambar..."):
-                            response = requests.get(url, timeout=10)
-                            response.raise_for_status()
-                            if 'image' not in response.headers.get('Content-Type', '').lower():
-                                st.error("❌ URL bukan file gambar valid.", icon="⚠️")
-                            else:
-                                image_bytes = response.content
-                                st.session_state['selected_image_bytes'] = image_bytes
-                                st.success("✅ Gambar berhasil diunduh.", icon="🌐")
-                    except Exception as e:
-                        st.error(f"Gagal mengunduh gambar: {e}")
+    col1, col2 = st.columns([2, 1])
+    with col1:
+        uploaded_file = st.file_uploader("📂 Upload Gambar", type=["jpg", "jpeg", "png"], key="cnn_uploader")
+        if uploaded_file:
+            st.session_state.uploaded_image = Image.open(uploaded_file)
+            st.session_state.source_key = "upload"
 
-    if image_bytes is None:
-        image_bytes = st.session_state.get('selected_image_bytes')
+    with col2:
+        st.subheader("⚙️ Pengaturan")
+        conf = st.slider("Confidence Threshold", 0.5, 1.0, st.session_state.cnn_conf, 0.01, key="cnn_conf_slider")
+        st.session_state.cnn_conf = conf
+        st.divider()
+        if st.button("🔙 Kembali ke Beranda", use_container_width=True):
+            st.session_state.page = 'home'
+            st.rerun()
 
-    if image_bytes:
-        try:
-            image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
-        except:
-            st.error("❌ Format gambar tidak didukung.")
-            return
+    if "uploaded_image" in st.session_state:
+        image = st.session_state.uploaded_image
+        st.image(image, caption="Gambar Asli", use_container_width=True)
 
-        col1, col2 = st.columns(2)
-        with col1:
-            st.subheader("🖼️ Gambar Asli")
-            st.image(image, use_container_width=True)
-            st.button("🗑️ Hapus Gambar & Reset", use_container_width=True, key=f"{page_type}_reset", on_click=reset_and_rerun)
+        img_resized = image.resize((224, 224))
+        img_array = np.expand_dims(np.array(img_resized) / 255.0, axis=0)
+        prediction = cnn_model.predict(img_array)
+        class_index = np.argmax(prediction)
+        confidence = np.max(prediction)
 
-        placeholder = col2.empty()
-        placeholder.info("Tekan tombol di bawah untuk memproses gambar.")
+        st.success(f"🧠 Prediksi: **Kelas {class_index}** | Akurasi: {confidence:.2%}")
+        st.progress(float(confidence))
 
-        if st.button(button_text, use_container_width=True, key=f"{page_type}_predict"):
-            with st.spinner("🧠 Menganalisis gambar..."):
-                if page_type == 'yolo':
-                    results = model(image, conf=confidence_threshold)
-                    plot_result = results[0].plot()
-                    if plot_result is not None:
-                        result_img_rgb = cv2.cvtColor(plot_result, cv2.COLOR_BGR2RGB)
-                        with placeholder.container():
-                            st.subheader("🎯 Hasil Deteksi")
-                            st.image(result_img_rgb, use_container_width=True)
-                            boxes = results[0].boxes
-                            if len(boxes) > 0:
-                                for i, box in enumerate(boxes):
-                                    st.success(f"Objek {i+1}: `{model.names[int(box.cls)]}` | Keyakinan: `{box.conf[0]:.2%}`")
-                            else:
-                                st.success("✅ Tidak ditemukan objek 'Hotdog' → **Not-Hotdog**", icon="👍")
-                    else:
-                        st.warning("Tidak ada hasil deteksi.")
-                else:
-                    CLASS_NAMES_CNN = {0: "Cheetah 🐆", 1: "Hyena 🐕"}
-                    input_shape = model.input_shape[1:3]
-                    img_array = np.expand_dims(np.array(image.resize(input_shape)) / 255.0, axis=0)
-                    preds_output = model.predict(img_array, verbose=0)[0]
+        st.divider()
+        if st.button("🗑️ Hapus Gambar", use_container_width=True):
+            clear_image_state()
 
-                    if len(preds_output) == 1:
-                        prob = preds_output[0]
-                        pred_idx = 1 if prob > 0.5 else 0
-                        pred_prob = max(prob, 1-prob)
-                        preds_for_display = [1-prob, prob]
-                    else:
-                        pred_idx = np.argmax(preds_output)
-                        pred_prob = np.max(preds_output)
-                        preds_for_display = preds_output
-
-                    with placeholder.container():
-                        st.subheader("🎯 Hasil Prediksi")
-                        if pred_prob >= st.session_state.cnn_conf:
-                            st.metric("Prediksi:", CLASS_NAMES_CNN[pred_idx])
-                            st.metric("Keyakinan:", f"{pred_prob:.2%}")
-                            st.success(f"Gambar terdeteksi sebagai {CLASS_NAMES_CNN[pred_idx]}.", icon="✅")
-                            st.subheader("📊 Distribusi Probabilitas")
-                            for i, p in enumerate(preds_for_display):
-                                st.progress(float(p), text=f"{CLASS_NAMES_CNN[i]}: {p:.2%}")
-                        else:
-                            st.error("❌ Gambar Tidak Terdeteksi", icon="🚫")
-                            st.warning(f"Keyakinan tertinggi ({pred_prob:.2%}) di bawah ambang batas ({st.session_state.cnn_conf:.2%}).")
-
-# ================== ROUTER UTAMA ==================
-if st.session_state.page == 'home':
+# ================== NAVIGASI ==================
+page = st.session_state.page
+if page == 'home':
     home_page()
-elif st.session_state.page == 'yolo':
-    run_model_page('yolo')
-elif st.session_state.page == 'cnn':
-    run_model_page('cnn')
+elif page == 'yolo':
+    yolo_page()
+elif page == 'cnn':
+    cnn_page()
+
+# ================== HANDLE RERUN ==================
+if st.session_state.need_rerun:
+    st.session_state.need_rerun = False
+    st.rerun()

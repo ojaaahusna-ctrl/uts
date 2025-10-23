@@ -9,13 +9,6 @@ import base64
 import requests
 import re
 
-# ================== KONFIGURASI HALAMAN ==================
-st.set_page_config(
-    page_title="VisionCraft — From Pixels to Insights | Final Version",
-    page_icon="✨",
-    layout="wide",
-    initial_sidebar_state="auto"
-)
 
 # ================== INITIALIZE SESSION STATE ==================
 defaults = {
@@ -27,7 +20,19 @@ for k, v in defaults.items():
     if k not in st.session_state:
         st.session_state[k] = v
 
-# ================== STYLE KUSTOM (CSS) ==================
+
+import streamlit as st
+from PIL import Image
+import io
+import base64
+
+# ================== KONFIGURASI HALAMAN ==================
+st.set_page_config(
+    page_title="VisionCraft — From Pixels to Insights | Final Version",
+    page_icon="✨",
+    layout="wide",
+    initial_sidebar_state="auto"
+)
 
 # ================== DESAIN TEMA & STYLE ==================
 st.markdown("""
@@ -141,6 +146,17 @@ div[data-baseweb="input"], div[data-baseweb="textarea"] {
 }
 </style>
 """, unsafe_allow_html=True)
+
+# ================== KONTEN DASHBOARD ==================
+st.markdown("""
+<div class="header">
+    <h1>✨ VisionCraft — From Pixels to Insights ✨</h1>
+    <p>Empowering AI to see the world, one pixel at a time.</p>
+</div>
+""", unsafe_allow_html=True)
+
+st.write("Selamat datang di versi final dashboard VisionCraft! 🚀")
+
 
 # ================== KONTEN DASHBOARD ==================
 st.markdown("""

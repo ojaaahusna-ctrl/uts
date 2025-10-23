@@ -7,7 +7,7 @@ import cv2
 import io
 import base64
 import requests 
-import re # Import untuk validasi URL
+import re 
 
 # ================== KONFIGURASI HALAMAN ==================
 st.set_page_config(
@@ -169,7 +169,7 @@ def run_model_page(page_type):
     
     st.header(title)
     
-    # PERBAIKAN: Feedback lebih baik untuk halaman YOLO/Deteksi
+    # Klarifikasi Penggunaan Model (YOLO)
     if page_type == 'yolo':
          st.info("⚠️ Model deteksi ini hanya dilatih untuk mendeteksi **Hotdog**.", icon="💡")
 
@@ -193,7 +193,7 @@ def run_model_page(page_type):
             st.info(f"Gambar di bawah {MIN_CONFIDENCE_THRESHOLD:.2%} akan ditolak.")
             
         st.markdown("---")
-        # Mengembalikan Kamera
+        # Mengembalikan Kamera, Menghapus Pilih Contoh
         source_choice = st.radio(
             "Pilih sumber gambar:", 
             ["📤 Upload File", "📸 Ambil dari Kamera", "🔗 Input URL Gambar"], 
@@ -210,18 +210,20 @@ def run_model_page(page_type):
                 image_bytes = uploaded_file.getvalue()
                 st.session_state['selected_image_bytes'] = image_bytes
                 
-        # 2. Ambil dari Kamera
+        # 2. Ambil dari Kamera (DIKEMBALIKAN SESUAI PERMINTAAN)
         elif source_choice == "📸 Ambil dari Kamera":
-            camera_input = st.camera_input("Arahkan kamera (Perlu HTTPS)", key=cam_key)
+            # Perubahan: Label kamera diubah sesuai permintaan
+            camera_input = st.camera_input("Arahkan kamera", key=cam_key) 
             if camera_input: 
                 image_bytes = camera_input.getvalue()
                 st.session_state['selected_image_bytes'] = image_bytes
+            st.info("⚠️ Fitur kamera mungkin tidak berfungsi jika aplikasi tidak berjalan di koneksi HTTPS.", icon="🛡️")
 
         # 3. Input URL Gambar
         elif source_choice == "🔗 Input URL Gambar":
             url = st.text_input("Masukkan URL Gambar:", value=st.session_state.get(url_key, ''), key=url_key)
             
-            # PERBAIKAN: Validasi URL harus berupa link web yang lengkap
+            # Perbaikan: Validasi URL web yang lengkap
             if url:
                 if not re.match(r'https?://[^\s/$.?#].[^\s]*$', url):
                     st.error("❌ Masukkan URL web yang lengkap (diawali dengan http:// atau https://).", icon="⚠️")
@@ -243,7 +245,7 @@ def run_model_page(page_type):
                     except requests.exceptions.Timeout:
                         st.error("❌ Permintaan unduhan habis waktu (Timeout).", icon="⏳")
                     except requests.exceptions.RequestException as e:
-                        st.error(f"❌ Gagal mengunduh gambar. Pastikan URL benar dan publik.", icon="🔥")
+                        st.error(f"❌ Gagal mengunduh gambar. Pastikan URL benar dan publik. Error: {e}", icon="🔥")
 
 
     # Ambil bytes gambar yang terakhir kali dipilih/diunggah/diambil
@@ -286,7 +288,7 @@ def run_model_page(page_type):
                             for i, box in enumerate(boxes):
                                 st.success(f"**Objek {i+1}:** `{model.names[int(box.cls)]}` | **Keyakinan:** `{box.conf[0]:.2%}`", icon="✅")
                         else:
-                            st.warning("Tidak ada objek terdeteksi. Model ini hanya mencari Hotdog.", icon="⚠️") # Feedback diperjelas
+                            st.warning("Tidak ada objek terdeteksi. Model ini hanya mencari Hotdog.", icon="⚠️") 
                 else:
                     # LOGIKA KLASIFIKASI CNN DENGAN THRESHOLDING
                     CLASS_NAMES_CNN = {0: "Cheetah 🐆", 1: "Hyena 🐕"}
@@ -315,7 +317,7 @@ def run_model_page(page_type):
                         else:
                             # 2. Prediksi ditolak (Keyakinan Rendah)
                             st.error("❌ Gambar Tidak Terdeteksi", icon="🚫")
-                            st.warning(f"Gambar tidak terdeteksi karena keyakinan tertinggi ({pred_prob:.2%}) berada di bawah ambang batas ({cnn_conf_threshold:.2%}). Gambar mungkin bukan Cheetah atau Hyena (seperti pada kasus Hotdog).") # Feedback diperjelas
+                            st.warning(f"Gambar tidak terdeteksi karena keyakinan tertinggi ({pred_prob:.2%}) berada di bawah ambang batas ({cnn_conf_threshold:.2%}). Gambar mungkin bukan Cheetah atau Hyena.") 
 
 
 # ================== ROUTER UTAMA APLIKASI ==================

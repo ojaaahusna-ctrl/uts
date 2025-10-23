@@ -115,7 +115,8 @@ div[data-baseweb="input"], div[data-baseweb="textarea"] {
 @st.cache_resource(show_spinner="📦 Memuat model YOLO...")
 def load_yolo_model():
     try:
-        return YOLO("model/best.pt")
+        model = YOLO("model/best.pt")
+        return model
     except Exception as e:
         st.error(f"❌ Gagal memuat model YOLO: {e}", icon="🔥")
         return None
@@ -123,7 +124,8 @@ def load_yolo_model():
 @st.cache_resource(show_spinner="📦 Memuat model CNN...")
 def load_cnn_model():
     try:
-        return tf.keras.models.load_model("model/compressed.h5", compile=False)
+        model = tf.keras.models.load_model("model/compressed.h5", compile=False)
+        return model
     except Exception as e:
         st.error(f"❌ Gagal memuat model CNN: {e}", icon="🔥")
         return None
@@ -132,13 +134,16 @@ def load_cnn_model():
 def clear_image_state():
     st.session_state['selected_image_bytes'] = None
 
+def go_home():
+    st.session_state.page = 'home'
+    clear_image_state()
+    st.rerun()
+
 def reset_and_rerun():
-    """Reset state dengan aman dan hindari loop."""
     clear_image_state()
     current_page = st.session_state.get('page', 'home')
-    if current_page not in ['yolo', 'cnn']:
-        return
-    st.rerun()
+    if current_page in ['yolo', 'cnn']:
+        st.rerun()
 
 # ================== HALAMAN HOME ==================
 def home_page():
@@ -180,7 +185,7 @@ def run_model_page(page_type):
         model_loader = load_cnn_model
         button_text = "🔮 Lakukan Prediksi"
 
-    st.button("⬅️ Kembali ke Menu Utama", on_click=lambda: (st.session_state.update({'page':'home'}), clear_image_state(), st.rerun()))
+    st.button("⬅️ Kembali ke Menu Utama", on_click=go_home)
     st.header(title)
 
     if page_type == 'cnn':
@@ -189,7 +194,8 @@ def run_model_page(page_type):
         st.info("⚠️ Model ini hanya dilatih untuk mendeteksi **Hotdog**.", icon="🍔")
 
     model = model_loader()
-    if not model: return
+    if not model:
+        st.stop()
 
     image_bytes = None
     source_key = f"{page_type}_source"
@@ -226,7 +232,7 @@ def run_model_page(page_type):
         elif source_choice == "🔗 Input URL Gambar":
             url = st.text_input("Masukkan URL Gambar:", value=st.session_state.get(url_key, ''), key=url_key)
             if url:
-                if not re.match(r'https?://[^\s/$.?#].[^\s]*$', url):
+                if not re.match(r'^https?://[^\s]+$', url):
                     st.error("❌ URL tidak valid.", icon="⚠️")
                 else:
                     try:
@@ -274,7 +280,8 @@ def run_model_page(page_type):
                             boxes = results[0].boxes
                             if len(boxes) > 0:
                                 for i, box in enumerate(boxes):
-                                    st.success(f"Objek {i+1}: `{model.names[int(box.cls)]}` | Keyakinan: `{box.conf[0]:.2%}`")
+                                    class_name = model.names[int(box.cls)] if hasattr(model, "names") else "Objek"
+                                    st.success(f"Objek {i+1}: `{class_name}` | Keyakinan: `{box.conf[0]:.2%}`")
                             else:
                                 st.success("✅ Tidak ditemukan objek 'Hotdog' → **Not-Hotdog**", icon="👍")
                     else:
@@ -303,7 +310,8 @@ def run_model_page(page_type):
                             st.success(f"Gambar terdeteksi sebagai {CLASS_NAMES_CNN[pred_idx]}.", icon="✅")
                             st.subheader("📊 Distribusi Probabilitas")
                             for i, p in enumerate(preds_for_display):
-                                st.progress(float(p), text=f"{CLASS_NAMES_CNN[i]}: {p:.2%}")
+                                st.write(f"{CLASS_NAMES_CNN[i]}: {p:.2%}")
+                                st.progress(float(p))
                         else:
                             st.error("❌ Gambar Tidak Terdeteksi", icon="🚫")
                             st.warning(f"Keyakinan tertinggi ({pred_prob:.2%}) di bawah ambang batas ({st.session_state.cnn_conf:.2%}).")

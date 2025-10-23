@@ -9,6 +9,13 @@ import base64
 import requests
 import re
 
+# ================== KONFIGURASI HALAMAN ==================
+st.set_page_config(
+    page_title="VisionCraft — From Pixels to Insights | Final Version",
+    page_icon="✨",
+    layout="wide",
+    initial_sidebar_state="auto"
+)
 
 # ================== INITIALIZE SESSION STATE ==================
 defaults = {
@@ -20,21 +27,7 @@ for k, v in defaults.items():
     if k not in st.session_state:
         st.session_state[k] = v
 
-
-import streamlit as st
-from PIL import Image
-import io
-import base64
-
-# ================== KONFIGURASI HALAMAN ==================
-st.set_page_config(
-    page_title="VisionCraft — From Pixels to Insights | Final Version",
-    page_icon="✨",
-    layout="wide",
-    initial_sidebar_state="auto"
-)
-
-# ================== DESAIN TEMA & STYLE ==================
+# ================== DESAIN TEMA & STYLE (CSS) ==================
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Playfair+Display:wght@700&display=swap');
@@ -68,60 +61,66 @@ h1, h2, h3, h4, h5, h6, p, li, label, .stMarkdown, .stText,
     margin-top: 1rem;
 }
 
-#home-container > div { max-width: 800px; width: 100%; }
+#home-container > div { max-width: 900px; width: 100%; }
 
 [data-testid="stSidebar"] { background-color: #F0FFF4; }
 
 .header {
-    background-color: rgba(255, 255, 255, 0.5);
-    backdrop-filter: blur(10px);
-    padding: 2.5rem;
-    border-radius: 20px;
+    background-color: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(8px);
+    padding: 2rem;
+    border-radius: 16px;
     text-align: center;
     border: 1px solid rgba(255, 255, 255, 0.8);
-    margin-bottom: 2rem; 
-    animation: fadeIn 2s ease-in-out;
+    margin-bottom: 1.5rem; 
+    animation: fadeIn 1.2s ease-in-out;
 }
 
 .header h1 {
     font-family: 'Playfair Display', serif;
-    color: #2D3748; 
-    font-size: 3rem;
+    color: #1F2937; 
+    font-size: 2.6rem;
     animation: floatText 4s ease-in-out infinite;
+    margin: 0;
+}
+
+.header p {
+    margin-top: 0.5rem;
+    color: #334155;
 }
 
 @keyframes fadeIn {
-    0% { opacity: 0; transform: translateY(-10px); }
+    0% { opacity: 0; transform: translateY(-8px); }
     100% { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes floatText {
     0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-5px); }
+    50% { transform: translateY(-4px); }
 }
 
 .menu-card {
     background-color: #FFFFFF;
     border: 1px solid #E2E8F0;
-    padding: 2rem 1.5rem;
-    border-radius: 15px;
+    padding: 1.6rem 1.2rem;
+    border-radius: 12px;
     text-align: center;
-    transition: all 0.3s ease-in-out;
+    transition: all 0.18s ease-in-out;
     height: 100%;
 }
 
 .menu-card:hover {
-    transform: scale(1.02);
-    box-shadow: 0 8px 20px rgba(49, 151, 149, 0.2);
+    transform: translateY(-4px);
+    box-shadow: 0 8px 20px rgba(49, 151, 149, 0.08);
 }
 
 .stButton>button {
     background-color: #319795;
     color: white !important;
-    border-radius: 10px;
+    border-radius: 8px;
     border: none;
-    padding: 10px 20px;
-    font-weight: bold;
+    padding: 8px 16px;
+    font-weight: 700;
 }
 .stButton>button:hover { background-color: #2C7A7B; }
 
@@ -147,26 +146,6 @@ div[data-baseweb="input"], div[data-baseweb="textarea"] {
 </style>
 """, unsafe_allow_html=True)
 
-# ================== KONTEN DASHBOARD ==================
-st.markdown("""
-<div class="header">
-    <h1>✨ VisionCraft — From Pixels to Insights ✨</h1>
-    <p>Empowering AI to see the world, one pixel at a time.</p>
-</div>
-""", unsafe_allow_html=True)
-
-st.write("Selamat datang di versi final dashboard VisionCraft! 🚀")
-
-
-# ================== KONTEN DASHBOARD ==================
-st.markdown("""
-<div class="header">
-    <h1>✨ VisionCraft — From Pixels to Insights ✨</h1>
-    <p>Empowering AI to see the world, one pixel at a time.</p>
-</div>
-""", unsafe_allow_html=True)
-
-st.write("Selamat datang di versi final dashboard VisionCraft! 🚀")
 
 # ================== LOAD MODEL ==================
 @st.cache_resource(show_spinner="📦 Memuat model YOLO...")
@@ -194,19 +173,23 @@ def reset_and_rerun():
     clear_image_state()
     st.session_state['selected_image_bytes'] = None
     st.session_state['page'] = 'home'
-    st.toast("✅ Gambar dihapus dan halaman direset.", icon="🗑️")
+    try:
+        st.toast("✅ Gambar dihapus dan halaman direset.", icon="🗑️")
+    except Exception:
+        # st.toast mungkin tidak tersedia pada versi lama Streamlit
+        pass
 
 # ================== HALAMAN HOME ==================
 def home_page():
     st.markdown('<div id="home-container">', unsafe_allow_html=True)
     st.markdown("""
     <div class="header">
-        <h1>✨ VisionAI Dashboard ✨</h1>
-        <p>Platform Interaktif untuk Deteksi & Klasifikasi Gambar</p>
+        <h1>✨ VisionCraft — From Pixels to Insights ✨</h1>
+        <p>Empowering AI to see the world, one pixel at a time.</p>
     </div>
     """, unsafe_allow_html=True)
-    st.subheader("Pilih Tugas yang Ingin Dilakukan:", anchor=False)
 
+    st.subheader("Pilih Tugas yang Ingin Dilakukan:")
     col1, col2 = st.columns(2)
     with col1:
         st.markdown('<div class="menu-card"><h3>🌭 Deteksi Objek</h3><p>Gunakan model YOLO untuk mendeteksi Hotdog vs Not-Hotdog.</p></div>', unsafe_allow_html=True)
@@ -223,7 +206,7 @@ def home_page():
     st.info("Proyek ini dibuat oleh **Raudhatul Husna** sebagai bagian dari Ujian Tengah Semester.", icon="🎓")
     st.markdown('</div>', unsafe_allow_html=True)
 
-# ================== HALAMAN MODEL ==================
+# ================== HALAMAN MODEL (Deteksi & Klasifikasi) ==================
 def run_model_page(page_type):
     if page_type == 'yolo':
         title = "🌭 Deteksi Objek: Hotdog vs Not-Hotdog"
@@ -234,7 +217,12 @@ def run_model_page(page_type):
         model_loader = load_cnn_model
         button_text = "🔮 Lakukan Prediksi"
 
-    st.button("⬅️ Kembali ke Menu Utama", on_click=lambda: st.session_state.update({'page':'home'}))
+    # Tombol kembali
+    if st.button("⬅️ Kembali ke Menu Utama"):
+        st.session_state.page = 'home'
+        clear_image_state()
+        return
+
     st.header(title)
 
     if page_type == 'cnn':
@@ -243,7 +231,8 @@ def run_model_page(page_type):
         st.info("⚠️ Model ini hanya dilatih untuk mendeteksi **Hotdog**.", icon="🍔")
 
     model = model_loader()
-    if not model: return
+    if not model: 
+        return
 
     image_bytes = None
     source_key = f"{page_type}_source"
@@ -329,7 +318,11 @@ def run_model_page(page_type):
                             boxes = results[0].boxes
                             if len(boxes) > 0:
                                 for i, box in enumerate(boxes):
-                                    st.success(f"Objek {i+1}: `{model.names[int(box.cls)]}` | Keyakinan: `{box.conf[0]:.2%}`")
+                                    try:
+                                        cls_name = model.names[int(box.cls)]
+                                    except Exception:
+                                        cls_name = str(int(box.cls))
+                                    st.success(f"Objek {i+1}: `{cls_name}` | Keyakinan: `{float(box.conf[0]):.2%}`")
                             else:
                                 st.success("✅ Tidak ditemukan objek 'Hotdog' → **Not-Hotdog**", icon="👍")
                     else:
@@ -341,14 +334,14 @@ def run_model_page(page_type):
                     preds_output = model.predict(img_array, verbose=0)[0]
 
                     if len(preds_output) == 1:
-                        prob = preds_output[0]
+                        prob = float(preds_output[0])
                         pred_idx = 1 if prob > 0.5 else 0
                         pred_prob = max(prob, 1-prob)
                         preds_for_display = [1-prob, prob]
                     else:
-                        pred_idx = np.argmax(preds_output)
-                        pred_prob = np.max(preds_output)
-                        preds_for_display = preds_output
+                        pred_idx = int(np.argmax(preds_output))
+                        pred_prob = float(np.max(preds_output))
+                        preds_for_display = [float(x) for x in preds_output]
 
                     with placeholder.container():
                         st.subheader("🎯 Hasil Prediksi")
@@ -370,3 +363,14 @@ elif st.session_state.page == 'yolo':
     run_model_page('yolo')
 elif st.session_state.page == 'cnn':
     run_model_page('cnn')
+
+# ================== FOOTER ==================
+st.markdown(
+    """
+    <hr>
+    <div style='text-align:center; font-size:0.9em; color:gray; margin-top:16px;'>
+        © 2025 VisionCraft — Made with ❤️ by Raudhatul Husna
+    </div>
+    """,
+    unsafe_allow_html=True
+)

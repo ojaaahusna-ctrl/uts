@@ -26,7 +26,7 @@ if 'selected_image_bytes' not in st.session_state:
 # ================== STYLE KUSTOM (CSS) - TEMA "COOL MINT" ==================
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Playfair+Display:wght@700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Playfair+Display:wght=700&display=swap');
     [data-testid="stAppViewContainer"] {
         background: linear-gradient(135deg, #E6FFFA 0%, #B2F5EA 100%);
     }
@@ -81,10 +81,16 @@ st.markdown("""
     .stButton>button:hover {
         background-color: #2C7A7B;
     }
-    /* PERBAIKAN: Target semua elemen teks bawaan Streamlit agar gelap */
+    /* Target semua elemen teks bawaan Streamlit agar gelap */
     h1, h2, h3, h4, h5, h6, p, li, label, .stMarkdown, .stText {
         color: #2D3748 !important;
     }
+    /* Perubahan warna background input agar lebih menyatu dengan tema */
+    div[data-baseweb="input"], div[data-baseweb="textarea"] {
+        background-color: #FFFFFF !important;
+        border-radius: 8px;
+        border: 1px solid #B2F5EA;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -105,19 +111,18 @@ def load_cnn_model():
 
 # ================== FUNGSI UNTUK MENGHAPUS STATE GAMBAR ==================
 def clear_image_state():
-    """Fungsi untuk membersihkan state gambar yang dipilih dan input file/url/kamera."""
+    """Fungsi untuk membersihkan state gambar yang dipilih."""
     st.session_state['selected_image_bytes'] = None
-    # Reset input components
-    if 'yolo_upload' in st.session_state: st.session_state['yolo_upload'] = None
-    if 'cnn_upload' in st.session_state: st.session_state['cnn_upload'] = None
-    # Perbaikan: Reset URL input agar tidak mencoba lagi jika URL sebelumnya error
-    if 'yolo_url_input' in st.session_state: st.session_state['yolo_url_input'] = '' 
+    
+def reset_and_rerun():
+    """Merupakan kombinasi reset state kustom dan pengaturan ulang state widget."""
+    clear_image_state()
+    
+    # Reset input text URL secara eksplisit
+    if 'yolo_url_input' in st.session_state: st.session_state['yolo_url_input'] = ''
     if 'cnn_url_input' in st.session_state: st.session_state['cnn_url_input'] = ''
-    if 'yolo_cam' in st.session_state: st.session_state['yolo_cam'] = None
-    if 'cnn_cam' in st.session_state: st.session_state['cnn_cam'] = None
-    # Set kembali radio button agar kembali ke Upload File
-    if 'yolo_source' in st.session_state: st.session_state['yolo_source'] = "📤 Upload File"
-    if 'cnn_source' in st.session_state: st.session_state['cnn_source'] = "📤 Upload File"
+
+    st.rerun()
 
 
 # ================== FUNGSI HALAMAN ==================
@@ -210,24 +215,33 @@ def run_model_page(page_type):
                 image_bytes = uploaded_file.getvalue()
                 st.session_state['selected_image_bytes'] = image_bytes
                 
-        # 2. Ambil dari Kamera (DIKEMBALIKAN SESUAI PERMINTAAN)
+        # 2. Ambil dari Kamera 
         elif source_choice == "📸 Ambil dari Kamera":
-            # Perubahan: Label kamera diubah sesuai permintaan
             camera_input = st.camera_input("Arahkan kamera", key=cam_key) 
             if camera_input: 
                 image_bytes = camera_input.getvalue()
                 st.session_state['selected_image_bytes'] = image_bytes
             st.info("⚠️ Fitur kamera mungkin tidak berfungsi jika aplikasi tidak berjalan di koneksi HTTPS.", icon="🛡️")
 
-        # 3. Input URL Gambar
+        # 3. Input URL Gambar (DIPERBAIKI DENGAN KETERANGAN)
         elif source_choice == "🔗 Input URL Gambar":
             url = st.text_input("Masukkan URL Gambar:", value=st.session_state.get(url_key, ''), key=url_key)
             
-            # Perbaikan: Validasi URL web yang lengkap
+            # KETERANGAN TAMBAHAN UNTUK USER
+            st.info("""
+            **Perhatian:** Pastikan ini adalah **Direct Link** ke file gambar (berakhir dengan `.jpg`, `.png`, dll.), bukan link halaman web.
+            
+            **Cara mendapatkan link yang benar (dari Google):**
+            1. Klik kanan pada gambar.
+            2. Pilih **"Buka gambar di tab baru"**.
+            3. Salin URL dari *address bar* tab baru tersebut.
+            """, icon="💡")
+            
+            # Validasi URL web yang lengkap
             if url:
                 if not re.match(r'https?://[^\s/$.?#].[^\s]*$', url):
                     st.error("❌ Masukkan URL web yang lengkap (diawali dengan http:// atau https://).", icon="⚠️")
-                    image_bytes = None # Pastikan bytes tidak terpakai jika URL invalid
+                    image_bytes = None
                 else:
                     try:
                         with st.spinner("Mengunduh gambar..."):
@@ -236,7 +250,7 @@ def run_model_page(page_type):
                             
                             content_type = response.headers.get('Content-Type', '').lower()
                             if 'image' not in content_type:
-                                st.error("❌ URL tidak mengarah ke file gambar yang valid.", icon="⚠️")
+                                st.error("❌ URL tidak mengarah ke file gambar yang valid (Konten bukan gambar).", icon="⚠️")
                             else:
                                 image_bytes = response.content
                                 st.session_state['selected_image_bytes'] = image_bytes 
@@ -245,7 +259,7 @@ def run_model_page(page_type):
                     except requests.exceptions.Timeout:
                         st.error("❌ Permintaan unduhan habis waktu (Timeout).", icon="⏳")
                     except requests.exceptions.RequestException as e:
-                        st.error(f"❌ Gagal mengunduh gambar. Pastikan URL benar dan publik. Error: {e}", icon="🔥")
+                        st.error(f"❌ Gagal mengunduh gambar. Pastikan URL benar, publik, dan merupakan Direct Link. Error: {e}", icon="🔥")
 
 
     # Ambil bytes gambar yang terakhir kali dipilih/diunggah/diambil
@@ -267,8 +281,8 @@ def run_model_page(page_type):
             st.image(image, use_container_width=True)
             
             # Tombol Reset
-            if st.button("🗑️ Hapus Gambar & Reset", use_container_width=True, key=f"{page_type}_reset", on_click=clear_image_state):
-                 st.rerun()
+            if st.button("🗑️ Hapus Gambar & Reset", use_container_width=True, key=f"{page_type}_reset"):
+                 reset_and_rerun() 
 
 
         placeholder = col2.empty()

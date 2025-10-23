@@ -6,8 +6,8 @@ import numpy as np
 import cv2
 import io
 import base64
-import requests 
-import re 
+import requests
+import re
 
 # ================== KONFIGURASI HALAMAN ==================
 st.set_page_config(
@@ -26,13 +26,13 @@ if 'selected_image_bytes' not in st.session_state:
 # ================== STYLE KUSTOM (CSS) - TEMA "COOL MINT" (FINAL) ==================
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Playfair+Display:wght=700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Playfair+Display:wght@700&display=swap');
     
     /* 1. LATAR BELAKANG CERAH (COOL MINT) - MEMAKSA MODE TERANG */
-    [data-testid="stAppViewContainer"] {
-        background: linear-gradient(135deg, #E6FFFA 0%, #B2F5EA 100%);
+    [data-testid="stAppViewContainer"] {
+        background: linear-gradient(135deg, #E6FFFA 0%, #B2F5EA 100%);
         color: #2D3748; 
-    }
+    }
     /* Memastikan elemen latar Streamlit tidak menjadi hitam (Override Dark Mode) */
     .stApp, .main, [data-testid="stSidebar"] {
         background: linear-gradient(135deg, #E6FFFA 0%, #B2F5EA 100%); 
@@ -46,8 +46,8 @@ st.markdown("""
     .stFileUploader > div > label, /* Label file uploader */
     .stRadio > label /* Label radio button */
     {
-        color: #2D3748 !important; 
-    }
+        color: #2D3748 !important; 
+    }
 
     /* 3. PEMUSATAN KONTEN UTAMA (HOME PAGE) */
     #home-container {
@@ -63,48 +63,58 @@ st.markdown("""
         width: 100%;
     }
     
-    [data-testid="stSidebar"] {
-        background-color: #F0FFF4;
-    }
+    [data-testid="stSidebar"] {
+        background-color: #F0FFF4;
+    }
     /* Header di home page */
-    .header {
-        background-color: rgba(255, 255, 255, 0.5);
-        backdrop-filter: blur(10px);
-        padding: 2.5rem;
-        border-radius: 20px;
-        text-align: center;
-        border: 1px solid rgba(255, 255, 255, 0.8);
+    .header {
+        background-color: rgba(255, 255, 255, 0.5);
+        backdrop-filter: blur(10px);
+        padding: 2.5rem;
+        border-radius: 20px;
+        text-align: center;
+        border: 1px solid rgba(255, 255, 255, 0.8);
         margin-bottom: 2rem; 
-    }
-    .header h1 {
-        font-family: 'Playfair Display', serif;
-        color: #2D3748; 
-        font-size: 3rem;
-    }
+    }
+    .header h1 {
+        font-family: 'Playfair Display', serif;
+        color: #2D3748; 
+        font-size: 3rem;
+    }
     
     /* Card Menu */
-    .menu-card {
-        background-color: #FFFFFF;
-        border: 1px solid #E2E8F0;
-        padding: 2rem 1.5rem;
-        border-radius: 15px;
-        text-align: center;
-        transition: all 0.3s ease-in-out;
-        height: 100%;
-    }
+    .menu-card {
+        background-color: #FFFFFF;
+        border: 1px solid #E2E8F0;
+        padding: 2rem 1.5rem;
+        border-radius: 15px;
+        text-align: center;
+        transition: all 0.3s ease-in-out;
+        height: 100%;
+    }
     
     /* 4. STYLE TOMBOL (MEMASTIKAN TEKS PUTIH) */
-    .stButton>button {
-        background-color: #319795;
-        color: white !important; /* PENTING: Teks tombol harus putih agar kontras */
-        border-radius: 10px;
-        border: none;
-        padding: 10px 20px;
-        font-weight: bold;
-    }
-    .stButton>button:hover {
-        background-color: #2C7A7B;
-    }
+    .stButton>button {
+        background-color: #319795;
+        color: white !important; /* PENTING: Teks tombol harus putih agar kontras */
+        border-radius: 10px;
+        border: none;
+        padding: 10px 20px;
+        font-weight: bold;
+    }
+    .stButton>button:hover {
+        background-color: #2C7A7B;
+    }
+    
+    /* 5. PEMUSATAN JUDUL HALAMAN (PERMINTAAN USER) */
+    .main [data-testid="stHeader"] {
+        text-align: center;
+    }
+    /* Memastikan subheader di home page juga terpusat */
+    #home-container [data-testid="stSubheader"] {
+        text-align: center;
+    }
+    
     /* Warna background input teks agar menyatu */
     div[data-baseweb="input"], div[data-baseweb="textarea"] {
         background-color: #FFFFFF !important;
@@ -263,14 +273,11 @@ def run_model_page(page_type):
         elif source_choice == "🔗 Input URL Gambar":
             url = st.text_input("Masukkan URL Gambar:", value=st.session_state.get(url_key, ''), key=url_key)
             
-            # KETERANGAN TAMBAHAN UNTUK USER
+            # KETERANGAN TAMBAHAN UNTUK USER (PERBAIKAN REQ 3)
             st.info("""
-            **Perhatian:** Pastikan ini adalah **Direct Link** ke file gambar (berakhir dengan `.jpg`, `.png`, dll.), bukan link halaman web.
+            **Tips:** Gunakan **Direct Link** (berakhir `.jpg`, `.png`).
             
-            **Cara mendapatkan link yang benar (dari Google):**
-            1. Klik kanan pada gambar.
-            2. Pilih **"Buka gambar di tab baru"**.
-            3. Salin URL dari *address bar* tab baru tersebut.
+            **Cara Cepat:** Klik kanan pada gambar di web, lalu pilih **"Copy Image Address"** (atau "Salin Alamat Gambar").
             """, icon="💡")
             
             # Validasi URL web yang lengkap
@@ -346,9 +353,33 @@ def run_model_page(page_type):
                     input_shape = model.input_shape[1:3]
                     img_array = np.expand_dims(np.array(image.resize(input_shape)) / 255.0, axis=0) 
                     
-                    preds = model.predict(img_array, verbose=0)[0]
-                    pred_prob = np.max(preds) 
-                    pred_idx = np.argmax(preds)
+                    # === PERBAIKAN LOGIKA (REQ 4) ===
+                    preds_output = model.predict(img_array, verbose=0)[0] # e.g., [0.9] atau [0.9, 0.1]
+
+                    if len(preds_output) == 1:
+                        # KASUS 1: Model Sigmoid (Output Tunggal, e.g., [0.9])
+                        # Asumsi: 0 (<0.5) = Cheetah, 1 (>0.5) = Hyena
+                        pred_prob_raw = preds_output[0]
+                        
+                        if pred_prob_raw > 0.5:
+                            pred_idx = 1 # Diprediksi Hyena
+                            pred_prob = pred_prob_raw
+                        else:
+                            pred_idx = 0 # Diprediksi Cheetah
+                            pred_prob = 1.0 - pred_prob_raw # Keyakinan adalah kebalikannya
+                        
+                        # Buat array probabilitas palsu untuk progress bar
+                        if pred_idx == 1:
+                            preds_for_display = [1.0 - pred_prob, pred_prob] # [prob_cheetah, prob_hyena]
+                        else:
+                            preds_for_display = [pred_prob, 1.0 - pred_prob] # [prob_cheetah, prob_hyena]
+
+                    else:
+                        # KASUS 2: Model Softmax (Output Ganda, e.g., [0.9, 0.1])
+                        pred_prob = np.max(preds_output) 
+                        pred_idx = np.argmax(preds_output)
+                        preds_for_display = preds_output
+                    # === AKHIR PERBAIKAN ===
                     
                     with placeholder.container():
                         st.subheader("🎯 Hasil Prediksi")
@@ -361,7 +392,8 @@ def run_model_page(page_type):
                             
                             # TAMPILKAN DISTRIBUSI
                             st.subheader("📊 Distribusi Probabilitas")
-                            for i, prob in enumerate(preds):
+                            # Gunakan 'preds_for_display' yang sudah diperbaiki
+                            for i, prob in enumerate(preds_for_display):
                                 st.progress(float(prob), text=f"{CLASS_NAMES_CNN.get(i)}: {prob:.2%}")
 
                         else:

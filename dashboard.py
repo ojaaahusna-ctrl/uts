@@ -6,7 +6,8 @@ import numpy as np
 import cv2
 import io
 import base64
-import os # Tambahkan import ini jika Anda perlu
+import os
+import requests # NEW: Import library untuk mengunduh gambar dari URL
 
 # ================== KONFIGURASI HALAMAN ==================
 st.set_page_config(
@@ -21,11 +22,12 @@ if 'page' not in st.session_state:
     st.session_state.page = 'home'
 
 # ================== DATA CONTOH GAMBAR (HARUS DIISI LENGKAP) ==================
-# CATATAN PENTING: Ganti string placeholder di bawah ini dengan string Base64 LENGKAP
-# dari file gambar Anda yang sebenarnya. Jika ini tidak diisi, gambar tidak akan muncul.
-CHEETAH_B64 = "iVBORw0KGgoAAAANSUhEUgAA..." # [MASUKKAN B64 GAMBAR ASLI DI SINI]
-HYENA_B64 = "iVBORw0KGgoAAAANSUhEUgAA..." # [MASUKKAN B64 GAMBAR ASLI DI SINI]
-HOTDOG_B64 = "iVBORw0KGgoAAAANSUhEUgAA..." # [MASUKKAN B64 GAMBAR ASLI DI SINI]
+# CATATAN PENTING: Ganti DUMMY_B64 dengan string Base64 gambar asli Anda
+DUMMY_B64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
+
+CHEETAH_B64 = DUMMY_B64  # Ganti dengan B64 gambar Cheetah asli Anda
+HYENA_B64 = DUMMY_B64    # Ganti dengan B64 gambar Hyena asli Anda
+HOTDOG_B64 = DUMMY_B64   # Ganti dengan B64 gambar Hotdog asli Anda
 
 # ================== STYLE KUSTOM (Tidak diubah) ==================
 st.markdown("""
@@ -59,8 +61,6 @@ def load_yolo_model():
 @st.cache_resource
 def load_cnn_model():
     try:
-        # Menambahkan parameter 'compile=False' jika terjadi error saat me-load model 
-        # yang sudah disimpan dengan 'compile=True', tergantung versi TF.
         return tf.keras.models.load_model("model/compressed.h5", compile=True)
     except Exception as e:
         st.error(f"❌ Gagal memuat model CNN: {e}", icon="🔥")
@@ -93,12 +93,11 @@ def home_page():
     st.markdown("---")
     st.info("Proyek ini dibuat oleh **Raudhatul Husna** sebagai bagian dari Ujian Tengah Semester.", icon="🎓")
 
-# ================== HALAMAN MODEL (Perbaikan Utama di sini) ==================
+# ================== HALAMAN MODEL ==================
 def run_model_page(page_type):
     if page_type == 'yolo':
         title = "🌭 Deteksi Objek: Hotdog vs Not-Hotdog"
         model_loader = load_yolo_model
-        # Perbaikan: Mengubah format string agar Streamlit tidak bingung
         sample_images = {"Contoh Hotdog": HOTDOG_B64}
         button_text = "🔍 Mulai Deteksi"
     else:
@@ -118,52 +117,77 @@ def run_model_page(page_type):
 
     image_bytes = None
     
-    # 🚨 PERBAIKAN KAMERA: Kamera Streamlit seringkali membutuhkan trik untuk bekerja 
-    # di dalam loop/rerun. Kita akan coba memaksanya di sidebar.
-
+    source_key = f"{page_type}_source"
+    upload_key = f"{page_type}_upload"
+    url_key = f"{page_type}_url_input" 
+    
     with st.sidebar:
         st.title("⚙️ Pengaturan")
         
-        # Penambahan slider Confidence Threshold untuk CNN
         if page_type == 'cnn':
             st.markdown("---")
-            # Ambang batas default 0.85
             MIN_CONFIDENCE_THRESHOLD = st.slider("Min. Keyakinan Deteksi (CNN)", 0.0, 1.0, 0.85, 0.05, key="cnn_conf")
             st.info(f"Gambar yang keyakinan prediksinya di bawah {MIN_CONFIDENCE_THRESHOLD:.2%} akan ditandai sebagai 'Tidak Terdeteksi'.")
             
         st.markdown("---")
-        source_choice = st.radio("Pilih sumber gambar:", ["📤 Upload File", "📸 Ambil dari Kamera", "🖼️ Pilih Contoh"], key=f"{page_type}_source")
+        # 🚨 PERUBAHAN UTAMA: Hapus Kamera, Ganti dengan Input URL
+        source_choice = st.radio("Pilih sumber gambar:", ["📤 Upload File", "🔗 Input URL", "🖼️ Pilih Contoh"], key=source_key)
 
         if page_type == 'yolo':
              confidence_threshold = st.slider("Tingkat Keyakinan (YOLO)", 0.0, 1.0, 0.5, 0.05, key="yolo_conf")
 
-
+        # 1. Upload File
         if source_choice == "📤 Upload File":
-            uploaded_file = st.file_uploader("Pilih gambar...", type=["jpg", "jpeg", "png"], label_visibility="collapsed", key=f"{page_type}_upload")
+            uploaded_file = st.file_uploader("Pilih gambar...", type=["jpg", "jpeg", "png"], label_visibility="collapsed", key=upload_key)
             if uploaded_file:
                 image_bytes = uploaded_file.getvalue()
+                
+        # 2. Input URL (PENGGANTI KAMERA)
+        elif source_choice == "🔗 Input URL":
+            url = st.text_input("Masukkan URL Gambar:", key=url_key)
+            if url:
+                try:
+                    with st.spinner("Mengunduh gambar..."):
+                        response = requests.get(url, timeout=10)
+                        response.raise_for_status() # Cek status error HTTP (4xx/5xx)
+                        
+                        content_type = response.headers.get('Content-Type', '').lower()
+                        if 'image' not in content_type:
+                            st.error("❌ URL tidak mengarah ke file gambar yang valid (Content-Type bukan gambar).", icon="⚠️")
+                        else:
+                            image_bytes = response.content
+                            st.success("✅ Gambar berhasil diunduh.", icon="🌐")
+                            
+                except requests.exceptions.Timeout:
+                     st.error("❌ Permintaan unduhan habis waktu (Timeout).", icon="⏳")
+                except requests.exceptions.RequestException as e:
+                    st.error(f"❌ Gagal mengunduh gambar. Pastikan URL benar dan publik. Error: {e}", icon="🔥")
         
-        # 📸 Ambil dari Kamera: Kita gunakan kembali input kamera
-        elif source_choice == "📸 Ambil dari Kamera":
-            camera_input = st.camera_input("Arahkan kamera", key=f"{page_type}_cam")
-            if camera_input:
-                image_bytes = camera_input.getvalue()
-        
-        # 🖼️ Pilih Contoh: Menggunakan B64 yang telah diisi
+        # 3. Pilih Contoh (Menggunakan B64)
         else:
             st.subheader("Pilih gambar dari galeri:")
             cols = st.columns(len(sample_images))
             for idx, (caption, b64_string) in enumerate(sample_images.items()):
                 with cols[idx]:
-                    # PERBAIKAN B64: Menggunakan f-string dengan data:image/jpeg;base64,
-                    st.image(f"data:image/jpeg;base64,{b64_string}", caption=caption, use_container_width=True)
+                    st.image(f"data:image/png;base64,{b64_string}", caption=caption, use_container_width=True)
                     if st.button(f"Gunakan {caption}", key=f"sample_{idx}", use_container_width=True):
-                        # Menggunakan base64.b64decode untuk mendapatkan bytes gambar
                         image_bytes = base64.b64decode(b64_string)
-    
+                        st.session_state[f'{page_type}_sample_bytes'] = image_bytes
+
+    # Logika untuk mengambil gambar yang tersimpan (jika user memilih contoh)
+    if image_bytes is None and source_choice == "🖼️ Pilih Contoh" and f'{page_type}_sample_bytes' in st.session_state:
+         image_bytes = st.session_state[f'{page_type}_sample_bytes']
+
+
     # ------------------ LOGIKA PREDIKSI UTAMA ------------------
     if image_bytes:
-        image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+        # Pengecekan PIL untuk memastikan bytes yang didapat memang gambar sebelum dibuka
+        try:
+            image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+        except:
+             st.error("❌ File yang diunduh/diunggah bukan format gambar yang didukung (JPEG/PNG).", icon="🖼️")
+             return
+
         col1, col2 = st.columns(2)
         with col1:
             st.subheader("🖼️ Gambar Asli")
@@ -174,7 +198,6 @@ def run_model_page(page_type):
         if st.button(button_text, type="primary", use_container_width=True):
             with st.spinner("🧠 Menganalisis gambar..."):
                 if page_type == 'yolo':
-                    # LOGIKA DETEKSI YOLO (Tidak diubah, sudah baik)
                     results = model(image, conf=confidence_threshold)
                     result_img_rgb = cv2.cvtColor(results[0].plot(), cv2.COLOR_BGR2RGB)
                     with placeholder.container():
@@ -188,15 +211,12 @@ def run_model_page(page_type):
                         else:
                             st.warning("Tidak ada objek terdeteksi.", icon="⚠️")
                 else:
-                    # LOGIKA KLASIFIKASI CNN DENGAN THRESHOLDING (Perbaikan)
+                    # LOGIKA KLASIFIKASI CNN DENGAN THRESHOLDING (Final)
                     CLASS_NAMES_CNN = {0: "Cheetah 🐆", 1: "Hyena 🐕"}
                     
-                    # Ambil threshold dari sidebar
-                    # Default: 0.85 jika tidak ada di session state (jika user tidak interaksi dengan slider)
                     cnn_conf_threshold = st.session_state.get('cnn_conf', 0.85) 
                     
                     input_shape = model.input_shape[1:3]
-                    # Normalisasi: Penting! Jika model dilatih dengan /255, harus ada di sini.
                     img_array = np.expand_dims(np.array(image.resize(input_shape)) / 255.0, axis=0) 
                     
                     preds = model.predict(img_array, verbose=0)[0]
@@ -206,20 +226,22 @@ def run_model_page(page_type):
                     with placeholder.container():
                         st.subheader("🎯 Hasil Prediksi")
                         
-                        # LOGIKA PENOLAKAN PREDIKSI (Thresholding)
                         if pred_prob >= cnn_conf_threshold:
-                            # Prediksi terdeteksi
+                            # 1. Prediksi diterima (Keyakinan Tinggi)
                             st.metric("Prediksi Utama:", CLASS_NAMES_CNN.get(pred_idx))
                             st.metric("Tingkat keyakinan:", f"{pred_prob:.2%}")
-                            st.success(f"✅ Gambar terdeteksi sebagai {CLASS_NAMES_CNN.get(pred_idx)} dengan keyakinan yang tinggi.", icon="✅")
+                            st.success(f"✅ Gambar terdeteksi sebagai {CLASS_NAMES_CNN.get(pred_idx)}.", icon="✅")
+                            
+                            # TAMPILKAN DISTRIBUSI
+                            st.subheader("📊 Distribusi Probabilitas")
+                            for i, prob in enumerate(preds):
+                                st.progress(float(prob), text=f"{CLASS_NAMES_CNN.get(i)}: {prob:.2%}")
+
                         else:
-                            # Prediksi gagal (di bawah ambang batas)
+                            # 2. Prediksi ditolak (Keyakinan Rendah) - TIDAK TAMPILKAN DISTRIBUSI
                             st.error("❌ Gambar Tidak Terdeteksi", icon="🚫")
-                            st.warning(f"Keyakinan tertinggi ({pred_prob:.2%}) berada di bawah ambang batas deteksi ({cnn_conf_threshold:.2%}). Gambar mungkin bukan Cheetah atau Hyena.")
-                        
-                        st.subheader("📊 Distribusi Probabilitas")
-                        for i, prob in enumerate(preds):
-                            st.progress(float(prob), text=f"{CLASS_NAMES_CNN.get(i)}: {prob:.2%}")
+                            st.warning(f"Gambar tidak terdeteksi sebagai Cheetah atau Hyena karena keyakinan tertinggi ({pred_prob:.2%}) berada di bawah ambang batas ({cnn_conf_threshold:.2%}).")
+
 
 # ================== ROUTER (Tidak diubah) ==================
 if st.session_state.page == 'home':

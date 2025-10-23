@@ -23,34 +23,68 @@ if 'page' not in st.session_state:
 if 'selected_image_bytes' not in st.session_state:
     st.session_state.selected_image_bytes = None
 
-# ================== STYLE KUSTOM (CSS) - TEMA "COOL MINT" ==================
+# ================== STYLE KUSTOM (CSS) - TEMA "COOL MINT" (DIPERBAIKI UNTUK MODE TERANG & ALIGNMENT) ==================
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Playfair+Display:wght=700&display=swap');
+    
+    /* 1. MEMAKSA LATAR BELAKANG TERANG DAN TEMA COOL MINT */
     [data-testid="stAppViewContainer"] {
         background: linear-gradient(135deg, #E6FFFA 0%, #B2F5EA 100%);
+        color: #2D3748; /* Memastikan teks utama gelap */
     }
+    /* Memastikan elemen latar Streamlit tidak menjadi hitam (Override Dark Mode) */
+    .stApp {
+        background: linear-gradient(135deg, #E6FFFA 0%, #B2F5EA 100%); 
+    }
+    /* Memastikan teks widget tidak hitam */
+    h1, h2, h3, h4, h5, h6, p, li, label, .stMarkdown, .stText, [data-testid^="st"] {
+        color: #2D3748 !important; 
+    }
+    
+    /* 2. PEMUSATAN KONTEN UTAMA */
+    /* Container untuk memusatkan header dan menu di home page */
+    .centered-content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        width: 100%;
+    }
+    .centered-content > * {
+        max-width: 800px; /* Batasi lebar untuk estetika */
+        width: 100%;
+    }
+
     [data-testid="stSidebar"] {
         background-color: #F0FFF4;
     }
     .header {
+        /* Hapus margin-bottom agar div centered-content bisa mengambil alih */
         background-color: rgba(255, 255, 255, 0.5);
         backdrop-filter: blur(10px);
         padding: 2.5rem;
         border-radius: 20px;
         text-align: center;
-        margin-bottom: 2rem;
         border: 1px solid rgba(255, 255, 255, 0.8);
+        margin-bottom: 2rem; /* Tambahkan kembali untuk pemisah */
     }
     .header h1 {
         font-family: 'Playfair Display', serif;
-        color: #2D3748; /* Gelap */
+        color: #2D3748; 
         font-size: 3rem;
     }
     .header p {
-        color: #4A5568; /* Lebih gelap */
+        color: #4A5568; 
         font-size: 1.2rem;
     }
+    /* Sesuaikan kontainer menu untuk menampung columns */
+    .menu-container {
+        max-width: 800px; 
+        margin: 0 auto; /* Tengah di dalam centered-content */
+        display: block; /* Agar col1, col2 bisa diatur di dalamnya */
+    }
+    
     .menu-card {
         background-color: #FFFFFF;
         border: 1px solid #E2E8F0;
@@ -80,10 +114,6 @@ st.markdown("""
     }
     .stButton>button:hover {
         background-color: #2C7A7B;
-    }
-    /* Target semua elemen teks bawaan Streamlit agar gelap */
-    h1, h2, h3, h4, h5, h6, p, li, label, .stMarkdown, .stText {
-        color: #2D3748 !important;
     }
     /* Perubahan warna background input agar lebih menyatu dengan tema */
     div[data-baseweb="input"], div[data-baseweb="textarea"] {
@@ -129,6 +159,10 @@ def reset_and_rerun():
 
 def home_page():
     """Menampilkan halaman menu utama."""
+    
+    # Memastikan konten di tengah
+    st.markdown('<div class="centered-content">', unsafe_allow_html=True)
+    
     st.markdown("""
     <div class="header">
         <h1>✨ VisionAI Dashboard ✨</h1>
@@ -136,7 +170,10 @@ def home_page():
     </div>
     """, unsafe_allow_html=True)
 
-    st.subheader("Pilih Tugas yang Ingin Dilakukan:")
+    st.subheader("Pilih Tugas yang Ingin Dilakukan:", anchor=False)
+
+    # Menggunakan container kustom untuk memastikan kolom tetap di tengah
+    st.markdown('<div class="menu-container">', unsafe_allow_html=True)
     col1, col2 = st.columns(2)
     with col1:
         st.markdown('<div class="menu-card"><h3>🌭 Deteksi Objek</h3><p>Gunakan model YOLO untuk mendeteksi Hotdog vs Not-Hotdog.</p></div>', unsafe_allow_html=True)
@@ -150,8 +187,15 @@ def home_page():
             st.session_state.page = 'cnn'
             clear_image_state()
             st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True) # Tutup menu-container
+    
     st.markdown("---")
+    # Memastikan info proyek juga terpusat
+    st.markdown('<div style="text-align: center; max-width: 800px; margin: 0 auto;">', unsafe_allow_html=True)
     st.info("Proyek ini dibuat oleh **Balqis Isaura** sebagai bagian dari Ujian Tengah Semester.", icon="🎓")
+    st.markdown('</div>', unsafe_allow_html=True)
+    
+    st.markdown('</div>', unsafe_allow_html=True) # Tutup centered-content
 
 def run_model_page(page_type):
     """Fungsi generik untuk menjalankan halaman model (YOLO atau CNN)."""
@@ -223,7 +267,7 @@ def run_model_page(page_type):
                 st.session_state['selected_image_bytes'] = image_bytes
             st.info("⚠️ Fitur kamera mungkin tidak berfungsi jika aplikasi tidak berjalan di koneksi HTTPS.", icon="🛡️")
 
-        # 3. Input URL Gambar (DIPERBAIKI DENGAN KETERANGAN)
+        # 3. Input URL Gambar
         elif source_choice == "🔗 Input URL Gambar":
             url = st.text_input("Masukkan URL Gambar:", value=st.session_state.get(url_key, ''), key=url_key)
             

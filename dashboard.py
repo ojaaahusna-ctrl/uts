@@ -39,19 +39,17 @@ st.markdown("""
         color: #2D3748;
     }
     
-    /* 2. KONSISTENSI WARNA TULISAN GELAP */
+    /* 2. KONSISTENSI WARNA TULISAN GELAP (Untuk Konten) */
     h1, h2, h3, h4, h5, h6, p, li, label, .stMarkdown, .stText, 
-    [data-testid^="st"] label, 
-    [data-testid="stMarkdownContainer"],
-    .stTextInput > div > div > input, 
-    .stFileUploader, 
-    .stRadio > label 
+    [data-testid="stMarkdownContainer"], /* Konten markdown */
+    .stTextInput > div > div > input, /* Input text */
+    .stFileUploader > div > label, /* Label file uploader */
+    .stRadio > label /* Label radio button */
     {
         color: #2D3748 !important; 
     }
 
     /* 3. PEMUSATAN KONTEN UTAMA (HOME PAGE) */
-    /* Target div container yang membungkus home page */
     #home-container {
         display: flex;
         flex-direction: column;
@@ -60,7 +58,6 @@ st.markdown("""
         width: 100%;
         margin-top: 1rem;
     }
-    /* Membatasi lebar elemen di dalam container agar terlihat bagus saat terpusat */
     #home-container > div {
         max-width: 800px;
         width: 100%;
@@ -96,10 +93,10 @@ st.markdown("""
         height: 100%;
     }
     
-    /* 4. STYLE TOMBOL DAN INPUT */
+    /* 4. STYLE TOMBOL (MEMASTIKAN TEKS PUTIH) */
     .stButton>button {
         background-color: #319795;
-        color: white; 
+        color: white !important; /* PENTING: Teks tombol harus putih agar kontras */
         border-radius: 10px;
         border: none;
         padding: 10px 20px;

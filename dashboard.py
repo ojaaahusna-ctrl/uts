@@ -11,7 +11,7 @@ import re
 
 # ================== KONFIGURASI HALAMAN ==================
 st.set_page_config(
-    page_title="VisionAI Dashboard | Final Version",
+    page_title="VisionCraft — From Pixels to Insights | Final Version",
     page_icon="✨",
     layout="wide",
     initial_sidebar_state="auto"

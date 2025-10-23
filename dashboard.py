@@ -44,10 +44,18 @@ st.markdown("""
     [data-testid="stMarkdownContainer"], /* Konten markdown */
     .stTextInput > div > div > input, /* Input text */
     .stFileUploader > div > label, /* Label file uploader */
-    .stRadio > label /* Label radio button */
+    .stRadio > label, /* Label radio button */
+    
+    /* --- PENAMBAHAN BARU UNTUK MEMPERBAIKI TULISAN PUCAT --- */
+    [data-testid="stMetricLabel"], /* Label st.metric (e.g., "Prediksi Utama:") */
+    [data-testid="stMetricValue"], /* Value st.metric (e.g., "Hyena") */
+    [data-testid="stAlert"] /* Teks di dalam st.success, st.info, st.warning, st.error */
+    /* --- AKHIR PENAMBAHAN --- */
+    
     {
         color: #2D3748 !important; 
     }
+
 
     /* 3. PEMUSATAN KONTEN UTAMA (HOME PAGE) */
     #home-container {
@@ -194,8 +202,8 @@ def home_page():
 
         st.markdown("---")
         
-        # Info proyek
-        st.info("Proyek ini dibuat oleh **Balqis Isaura** sebagai bagian dari Ujian Tengah Semester.", icon="🎓")
+        # Info proyek (PERUBAHAN NAMA DI SINI)
+        st.info("Proyek ini dibuat oleh **Raudhatul Husna** sebagai bagian dari Ujian Tengah Semester.", icon="🎓")
         
         st.markdown('</div>', unsafe_allow_html=True) # Tutup home-container
 
@@ -388,7 +396,9 @@ def run_model_page(page_type):
                             # 1. Prediksi diterima (Keyakinan Tinggi)
                             st.metric("Prediksi Utama:", CLASS_NAMES_CNN.get(pred_idx))
                             st.metric("Tingkat keyakinan:", f"{pred_prob:.2%}")
-                            st.success(f"✅ Gambar terdeteksi sebagai {CLASS_NAMES_CNN.get(pred_idx)}.", icon="✅")
+                            
+                            # PERUBAHAN EMOJI (HANYA 1 CENTANG)
+                            st.success(f"Gambar terdeteksi sebagai {CLASS_NAMES_CNN.get(pred_idx)}.", icon="✅")
                             
                             # TAMPILKAN DISTRIBUSI
                             st.subheader("📊 Distribusi Probabilitas")

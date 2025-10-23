@@ -133,12 +133,11 @@ def clear_image_state():
     st.session_state['selected_image_bytes'] = None
 
 def reset_and_rerun():
-    """Reset state dengan aman dan hindari loop."""
+    """Reset state tanpa st.rerun() — aman dan tanpa error"""
     clear_image_state()
-    current_page = st.session_state.get('page', 'home')
-    if current_page not in ['yolo', 'cnn']:
-        return
-    st.experimental_rerun()  # ✅ aman digunakan di luar callback
+    st.session_state['selected_image_bytes'] = None
+    st.session_state['page'] = 'home'
+    st.toast("✅ Gambar dihapus dan halaman direset.", icon="🗑️")
 
 # ================== HALAMAN HOME ==================
 def home_page():
@@ -157,13 +156,11 @@ def home_page():
         if st.button("Mulai Deteksi", use_container_width=True, key="yolo_nav"):
             st.session_state.page = 'yolo'
             clear_image_state()
-            st.experimental_rerun()
     with col2:
         st.markdown('<div class="menu-card"><h3>🐆 Klasifikasi Gambar</h3><p>Gunakan model CNN untuk mengklasifikasikan Cheetah dan Hyena.</p></div>', unsafe_allow_html=True)
         if st.button("Mulai Klasifikasi", use_container_width=True, key="cnn_nav"):
             st.session_state.page = 'cnn'
             clear_image_state()
-            st.experimental_rerun()
 
     st.markdown("---")
     st.info("Proyek ini dibuat oleh **Raudhatul Husna** sebagai bagian dari Ujian Tengah Semester.", icon="🎓")
@@ -180,13 +177,7 @@ def run_model_page(page_type):
         model_loader = load_cnn_model
         button_text = "🔮 Lakukan Prediksi"
 
-    # ✅ Perbaikan di sini
-    back_clicked = st.button("⬅️ Kembali ke Menu Utama")
-    if back_clicked:
-        st.session_state.page = 'home'
-        clear_image_state()
-        st.experimental_rerun()
-
+    st.button("⬅️ Kembali ke Menu Utama", on_click=lambda: st.session_state.update({'page':'home'}))
     st.header(title)
 
     if page_type == 'cnn':
@@ -195,8 +186,7 @@ def run_model_page(page_type):
         st.info("⚠️ Model ini hanya dilatih untuk mendeteksi **Hotdog**.", icon="🍔")
 
     model = model_loader()
-    if not model:
-        return
+    if not model: return
 
     image_bytes = None
     source_key = f"{page_type}_source"

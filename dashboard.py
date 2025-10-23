@@ -24,6 +24,7 @@ if 'selected_image_bytes' not in st.session_state:
     st.session_state.selected_image_bytes = None
 
 # ================== STYLE KUSTOM (CSS) - TEMA "COOL MINT" (FINAL) ==================
+# --- BLOK INI TELAH DIPERBARUI UNTUK MEMPERBAIKI MASALAH TAMPILAN ---
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Playfair+Display:wght@700&display=swap');
@@ -33,7 +34,6 @@ st.markdown("""
         background: linear-gradient(135deg, #E6FFFA 0%, #B2F5EA 100%);
         color: #2D3748; 
     }
-    /* Memastikan elemen latar Streamlit tidak menjadi hitam (Override Dark Mode) */
     .stApp, .main, [data-testid="stSidebar"] {
         background: linear-gradient(135deg, #E6FFFA 0%, #B2F5EA 100%); 
         color: #2D3748;
@@ -41,21 +41,14 @@ st.markdown("""
     
     /* 2. KONSISTENSI WARNA TULISAN GELAP (Untuk Konten) */
     h1, h2, h3, h4, h5, h6, p, li, label, .stMarkdown, .stText, 
-    [data-testid="stMarkdownContainer"], /* Konten markdown */
-    .stTextInput > div > div > input, /* Input text */
-    .stFileUploader > div > label, /* Label file uploader */
-    .stRadio > label, /* Label radio button */
-    
-    /* --- PENAMBAHAN BARU UNTUK MEMPERBAIKI TULISAN PUCAT --- */
-    [data-testid="stMetricLabel"], /* Label st.metric (e.g., "Prediksi Utama:") */
-    [data-testid="stMetricValue"], /* Value st.metric (e.g., "Hyena") */
-    [data-testid="stAlert"] /* Teks di dalam st.success, st.info, st.warning, st.error */
-    /* --- AKHIR PENAMBAHAN --- */
-    
+    [data-testid="stMarkdownContainer"],
+    .stRadio > label,
+    [data-testid="stMetricLabel"], 
+    [data-testid="stMetricValue"], 
+    [data-testid="stAlert"]
     {
         color: #2D3748 !important; 
     }
-
 
     /* 3. PEMUSATAN KONTEN UTAMA (HOME PAGE) */
     #home-container {
@@ -66,15 +59,9 @@ st.markdown("""
         width: 100%;
         margin-top: 1rem;
     }
-    #home-container > div {
-        max-width: 800px;
-        width: 100%;
-    }
+    #home-container > div { max-width: 800px; width: 100%; }
+    [data-testid="stSidebar"] { background-color: #F0FFF4; }
     
-    [data-testid="stSidebar"] {
-        background-color: #F0FFF4;
-    }
-    /* Header di home page */
     .header {
         background-color: rgba(255, 255, 255, 0.5);
         backdrop-filter: blur(10px);
@@ -90,7 +77,6 @@ st.markdown("""
         font-size: 3rem;
     }
     
-    /* Card Menu */
     .menu-card {
         background-color: #FFFFFF;
         border: 1px solid #E2E8F0;
@@ -104,33 +90,56 @@ st.markdown("""
     /* 4. STYLE TOMBOL (MEMASTIKAN TEKS PUTIH) */
     .stButton>button {
         background-color: #319795;
-        color: white !important; /* PENTING: Teks tombol harus putih agar kontras */
+        color: white !important; /* Teks tombol harus putih agar kontras */
         border-radius: 10px;
         border: none;
         padding: 10px 20px;
         font-weight: bold;
     }
-    .stButton>button:hover {
-        background-color: #2C7A7B;
-    }
+    .stButton>button:hover { background-color: #2C7A7B; }
     
-    /* 5. PEMUSATAN JUDUL HALAMAN (PERMINTAAN USER) */
-    .main [data-testid="stHeader"] {
-        text-align: center;
-    }
-    /* Memastikan subheader di home page juga terpusat */
-    #home-container [data-testid="stSubheader"] {
-        text-align: center;
-    }
+    /* 5. PEMUSATAN JUDUL HALAMAN */
+    .main [data-testid="stHeader"] { text-align: center; }
+    #home-container [data-testid="stSubheader"] { text-align: center; }
     
-    /* Warna background input teks agar menyatu */
+    
+    /* --- INI ADALAH PERBAIKAN UNTUK KOTAK HITAM (REQ TERBARU) --- */
+
+    /* 6. PERBAIKAN BACKGROUND KOMPONEN (YANG JADI HITAM) */
+    
+    /* Background Input Teks (URL) */
     div[data-baseweb="input"], div[data-baseweb="textarea"] {
         background-color: #FFFFFF !important;
         border-radius: 8px;
         border: 1px solid #B2F5EA;
+        /* Memastikan teks di dalam input juga gelap */
+        color: #2D3748 !important;
     }
+    /* Memaksa placeholder (e.g., "Press Enter to apply") menjadi gelap */
+    div[data-baseweb="input"] input::placeholder {
+        color: #2D3748 !important;
+    }
+
+    /* Background File Uploader (Drag and Drop) */
+    [data-testid="stFileUploader"] section {
+        background-color: #FFFFFF !important;
+        border: 2px dashed #B2F5EA !important;
+    }
+    
+    /* Teks di dalam File Uploader (e.g., "Drag and drop", "Browse files") */
+    [data-testid="stFileUploader"] section * {
+        color: #2D3748 !important; 
+    }
+    
+    /* Label di atas File Uploader (e.g. "Pilih gambar...") */
+    .stFileUploader > div > label {
+        color: #2D3748 !important; 
+    }
+
 </style>
 """, unsafe_allow_html=True)
+# --- AKHIR DARI BLOK YANG DIPERBARUI ---
+
 
 # ================== CACHE MODEL ==================
 @st.cache_resource
@@ -156,9 +165,21 @@ def reset_and_rerun():
     """Merupakan kombinasi reset state kustom dan pengaturan ulang state widget."""
     clear_image_state()
     
-    # Reset input text URL secara eksplisit
-    if 'yolo_url_input' in st.session_state: st.session_state['yolo_url_input'] = ''
-    if 'cnn_url_input' in st.session_state: st.session_state['cnn_url_input'] = ''
+    # --- PERBAIKAN LOGIKA ERROR SAAT HAPUS ---
+    # Tentukan di halaman mana kita berada
+    current_page = st.session_state.get('page', 'home') # Ambil 'home' jika 'page' belum ada
+    
+    if current_page == 'yolo' or current_page == 'cnn':
+        # Tentukan kunci widget berdasarkan halaman saat ini
+        source_key = f"{current_page}_source"
+        url_key = f"{current_page}_url_input"
+
+        # HANYA reset widget URL jika widget itu ada (terender)
+        # Yaitu, jika pengguna sedang memilih "Input URL Gambar"
+        if source_key in st.session_state and st.session_state[source_key] == "🔗 Input URL Gambar":
+            if url_key in st.session_state:
+                st.session_state[url_key] = ''
+    # --- AKHIR PERBAIKAN ---
 
     st.rerun()
 
@@ -202,7 +223,7 @@ def home_page():
 
         st.markdown("---")
         
-        # Info proyek (PERUBAHAN NAMA DI SINI)
+        # Info proyek (Nama sudah diganti)
         st.info("Proyek ini dibuat oleh **Raudhatul Husna** sebagai bagian dari Ujian Tengah Semester.", icon="🎓")
         
         st.markdown('</div>', unsafe_allow_html=True) # Tutup home-container
@@ -281,7 +302,7 @@ def run_model_page(page_type):
         elif source_choice == "🔗 Input URL Gambar":
             url = st.text_input("Masukkan URL Gambar:", value=st.session_state.get(url_key, ''), key=url_key)
             
-            # KETERANGAN TAMBAHAN UNTUK USER (PERBAIKAN REQ 3)
+            # KETERANGAN TAMBAHAN UNTUK USER (Sudah diringkas)
             st.info("""
             **Tips:** Gunakan **Direct Link** (berakhir `.jpg`, `.png`).
             
@@ -361,27 +382,23 @@ def run_model_page(page_type):
                     input_shape = model.input_shape[1:3]
                     img_array = np.expand_dims(np.array(image.resize(input_shape)) / 255.0, axis=0) 
                     
-                    # === PERBAIKAN LOGIKA (REQ 4) ===
-                    preds_output = model.predict(img_array, verbose=0)[0] # e.g., [0.9] atau [0.9, 0.1]
+                    # === PERBAIKAN LOGIKA KLASIFIKASI (Sigmoid vs Softmax) ===
+                    preds_output = model.predict(img_array, verbose=0)[0] 
 
                     if len(preds_output) == 1:
                         # KASUS 1: Model Sigmoid (Output Tunggal, e.g., [0.9])
-                        # Asumsi: 0 (<0.5) = Cheetah, 1 (>0.5) = Hyena
                         pred_prob_raw = preds_output[0]
-                        
                         if pred_prob_raw > 0.5:
-                            pred_idx = 1 # Diprediksi Hyena
+                            pred_idx = 1 # Hyena
                             pred_prob = pred_prob_raw
                         else:
-                            pred_idx = 0 # Diprediksi Cheetah
-                            pred_prob = 1.0 - pred_prob_raw # Keyakinan adalah kebalikannya
+                            pred_idx = 0 # Cheetah
+                            pred_prob = 1.0 - pred_prob_raw 
                         
-                        # Buat array probabilitas palsu untuk progress bar
                         if pred_idx == 1:
-                            preds_for_display = [1.0 - pred_prob, pred_prob] # [prob_cheetah, prob_hyena]
+                            preds_for_display = [1.0 - pred_prob, pred_prob] 
                         else:
-                            preds_for_display = [pred_prob, 1.0 - pred_prob] # [prob_cheetah, prob_hyena]
-
+                            preds_for_display = [pred_prob, 1.0 - pred_prob]
                     else:
                         # KASUS 2: Model Softmax (Output Ganda, e.g., [0.9, 0.1])
                         pred_prob = np.max(preds_output) 
@@ -397,12 +414,11 @@ def run_model_page(page_type):
                             st.metric("Prediksi Utama:", CLASS_NAMES_CNN.get(pred_idx))
                             st.metric("Tingkat keyakinan:", f"{pred_prob:.2%}")
                             
-                            # PERUBAHAN EMOJI (HANYA 1 CENTANG)
+                            # Emoji sudah 1
                             st.success(f"Gambar terdeteksi sebagai {CLASS_NAMES_CNN.get(pred_idx)}.", icon="✅")
                             
                             # TAMPILKAN DISTRIBUSI
                             st.subheader("📊 Distribusi Probabilitas")
-                            # Gunakan 'preds_for_display' yang sudah diperbaiki
                             for i, prob in enumerate(preds_for_display):
                                 st.progress(float(prob), text=f"{CLASS_NAMES_CNN.get(i)}: {prob:.2%}")
 

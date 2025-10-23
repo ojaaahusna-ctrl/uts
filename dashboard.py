@@ -155,7 +155,7 @@ def clear_image_state():
     """Fungsi untuk membersihkan state gambar yang dipilih."""
     st.session_state['selected_image_bytes'] = None
     
-# --- INI ADALAH FUNGSI BARU UNTUK FIX POIN 1 & 3 ---
+# --- FUNGSI BARU UNTUK FIX POIN 1 & 3 ---
 def reset_and_rerun():
     """Merupakan kombinasi reset state kustom dan pengaturan ulang state widget."""
     clear_image_state() # Ini membersihkan st.session_state['selected_image_bytes']

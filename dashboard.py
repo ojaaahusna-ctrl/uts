@@ -274,7 +274,7 @@ def run_model_page(page_type):
                             boxes = results[0].boxes
                             if len(boxes) > 0:
                                 for i, box in enumerate(boxes):
-                                    st.success(f"Objek {i+1}: {model.names[int(box.cls)]} | Keyakinan: {box.conf[0]:.2%}")
+                                    st.success(f"Objek {i+1}: `{model.names[int(box.cls)]}` | Keyakinan: `{box.conf[0]:.2%}`")
                             else:
                                 st.success("✅ Tidak ditemukan objek 'Hotdog' → **Not-Hotdog**", icon="👍")
                     else:
@@ -284,3 +284,34 @@ def run_model_page(page_type):
                     input_shape = model.input_shape[1:3]
                     img_array = np.expand_dims(np.array(image.resize(input_shape)) / 255.0, axis=0)
                     preds_output = model.predict(img_array, verbose=0)[0]
+
+                    if len(preds_output) == 1:
+                        prob = preds_output[0]
+                        pred_idx = 1 if prob > 0.5 else 0
+                        pred_prob = max(prob, 1-prob)
+                        preds_for_display = [1-prob, prob]
+                    else:
+                        pred_idx = np.argmax(preds_output)
+                        pred_prob = np.max(preds_output)
+                        preds_for_display = preds_output
+
+                    with placeholder.container():
+                        st.subheader("🎯 Hasil Prediksi")
+                        if pred_prob >= st.session_state.cnn_conf:
+                            st.metric("Prediksi:", CLASS_NAMES_CNN[pred_idx])
+                            st.metric("Keyakinan:", f"{pred_prob:.2%}")
+                            st.success(f"Gambar terdeteksi sebagai {CLASS_NAMES_CNN[pred_idx]}.", icon="✅")
+                            st.subheader("📊 Distribusi Probabilitas")
+                            for i, p in enumerate(preds_for_display):
+                                st.progress(float(p), text=f"{CLASS_NAMES_CNN[i]}: {p:.2%}")
+                        else:
+                            st.error("❌ Gambar Tidak Terdeteksi", icon="🚫")
+                            st.warning(f"Keyakinan tertinggi ({pred_prob:.2%}) di bawah ambang batas ({st.session_state.cnn_conf:.2%}).")
+
+# ================== ROUTER UTAMA ==================
+if st.session_state.page == 'home':
+    home_page()
+elif st.session_state.page == 'yolo':
+    run_model_page('yolo')
+elif st.session_state.page == 'cnn':
+    run_model_page('cnn')

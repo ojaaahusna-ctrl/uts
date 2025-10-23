@@ -226,9 +226,9 @@ def run_model_page(page_type):
     st.header(title)
 
     if page_type == 'cnn':
-        st.info("💡 Model ini hanya mengenali **Cheetah** dan **Hyena**. Gunakan slider di sidebar untuk atur ambang keyakinan.", icon="💡")
+        st.info("Model ini hanya mengenali **Cheetah** dan **Hyena**. Gunakan slider di sidebar untuk atur ambang keyakinan.", icon="💡")
     if page_type == 'yolo':
-        st.info("⚠️ Model ini hanya dilatih untuk mendeteksi **Hotdog**.", icon="🍔")
+        st.info("⚠️ Model ini hanya dilatih untuk mendeteksi **Hotdog**.", icon="🌭")
 
     model = model_loader()
     if not model: 

@@ -221,7 +221,7 @@ def run_model_page(page_type):
     if st.button("⬅️ Kembali ke Menu Utama"):
         st.session_state.page = 'home'
         clear_image_state()
-        return
+        st.rerun()
 
     st.header(title)
 

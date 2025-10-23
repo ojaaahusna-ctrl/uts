@@ -6,7 +6,8 @@ import numpy as np
 import cv2
 import io
 import base64
-import requests # PERLU: Untuk Input URL
+import requests 
+import re # Import untuk validasi URL
 
 # ================== KONFIGURASI HALAMAN ==================
 st.set_page_config(
@@ -16,23 +17,13 @@ st.set_page_config(
     initial_sidebar_state="auto"
 )
 
-# ================== INITIALIZE SESSION STATE (PERBAIKAN ERROR) ==================
-# Pastikan 'page' selalu terinisialisasi di awal
+# ================== INITIALIZE SESSION STATE ==================
 if 'page' not in st.session_state:
     st.session_state.page = 'home'
-# State untuk menyimpan gambar yang dipilih dari galeri/url/upload
 if 'selected_image_bytes' not in st.session_state:
     st.session_state.selected_image_bytes = None
 
-# ================== DATA CONTOH GAMBAR (DIPERTANKAN UNTUK MEMUDAHKAN PENGUJIAN INTERNAL) ==================
-# Meskipun Anda meminta fitur 'Pilih Contoh' dihapus, data B64 ini bisa berguna untuk demo cepat.
-# Namun, fitur pemilihannya (radio button) akan dihapus.
-CHEETAH_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/2wCEAAkGBxMHBg0JCAgKDQ0HDQ0JBwYHDQ8IDQcNFREWFhURExMYHSggGBolGxMVITEhJSkrLi4uFx8zODMtNygtLisBCgoKDg0OGxAQGy4mICYuMi0vLy0tLS8tLy0vNS8vLy0vLy0vLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLf/AABEIAJgAqAMBIgACEQEDEQH/xAAcAAEAAgIDAQAAAAAAAAAAAAAABgcEBQEDCAL/xABDEAABAwIDBQQGBQkFCQAAAAABAAIDBBEFEgYhMUFRBxMiYXGBkRShscEIFCNCUnKSotEWJDNik7LC0uHwM1VzwvFE/8QAGwEBAAIDAQEAAAAAAAAAAAAAAAUGAwQHAgH/xAAxEQABAwIDBgQGAgMAAAAAAAAAAQIDBBEFEiExQRNRYXGBkaGx0fAUIjLBIkPhUoL/2gAMAwEAAhEDEQH/ALxREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREUGv/Q=="
-HYENA_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/2wCEAAkGBxMHBg0JCAgKDQ0HDQ0JBwYHDQ8IDQcNFREWFhURExMYHSggGBolGxMVITEhJSkrLi4uFx8zODMtNygtLisBCgoKDg0OGxAQGy4mICYuMi0vLy0tLS8tLy0vNS8vLy0vLy0vLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLf/AABEIAJgAqAMBIgACEQEDEQH/xAAcAAEAAgIDAQAAAAAAAAAAAAAABgcEBQEDCAL/xABDEAABAwIDBQQGBQkFCQAAAAABAAIDBBEFEgYhMUFRBxMiYXGBkRShscEIFCNCUnKSotEWJDNik7LC0uHwM1VzwvFE/8QAGwEBAAIDAQEAAAAAAAAAAAAAAAUGAwQHAgH/xAAxEQABAwIDBgQGAgMAAAAAAAAAAQIDBBEFEiExQRNRYXGBkaGx0fAUIjLBIkPhUoL/2gAMAwEAAhEDEQH/ALxREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREUGvQ=="
-HOTDOG_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/2wCEAAkGBxMHBg0JCAgKDQ0HDQ0JBwYHDQ8IDQcNFREWFhURExMYHSggGBolGxMVITEhJSkrLi4uFx8zODMtNygtLisBCgoKDg0OGxAQGy4mICYuMi0vLy0tLS8tLy0vNS8vLy0vLy0vLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLf/AABEIAJgAqAMBIgACEQEDEQH/xAAcAAEAAgIDAQAAAAAAAAAAAAAABgcEBQEDCAL/xABDEAABAwIDBQQGBQkFCQAAAAABAAIDBBEFEgYhMUFRBxMiYXGBkRShscEIFCNCUnKSotEWJDNik7LC0uHwM1VzwvFE/8QAGwEBAAIDAQEAAAAAAAAAAAAAAAUGAwQHAgH/xAAxEQABAwIDBgQGAgMAAAAAAAAAAQIDBBEFEiExQRNRYXGBkaGx0fAUIjLBIkPhUoL/2gAMAwEAAhEDEQH/ALxREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREUGvQ=="
-
 # ================== STYLE KUSTOM (CSS) - TEMA "COOL MINT" ==================
-# PERBAIKAN: Menggelapkan semua teks ke #2D3748
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Playfair+Display:wght@700&display=swap');
@@ -114,14 +105,16 @@ def load_cnn_model():
 
 # ================== FUNGSI UNTUK MENGHAPUS STATE GAMBAR ==================
 def clear_image_state():
-    """Fungsi untuk membersihkan state gambar yang dipilih dan input file/url."""
-    # Reset semua variabel yang menyimpan input gambar
+    """Fungsi untuk membersihkan state gambar yang dipilih dan input file/url/kamera."""
     st.session_state['selected_image_bytes'] = None
-    # Reset file uploader dan text input
+    # Reset input components
     if 'yolo_upload' in st.session_state: st.session_state['yolo_upload'] = None
     if 'cnn_upload' in st.session_state: st.session_state['cnn_upload'] = None
-    if 'yolo_url_input' in st.session_state: st.session_state['yolo_url_input'] = ''
+    # Perbaikan: Reset URL input agar tidak mencoba lagi jika URL sebelumnya error
+    if 'yolo_url_input' in st.session_state: st.session_state['yolo_url_input'] = '' 
     if 'cnn_url_input' in st.session_state: st.session_state['cnn_url_input'] = ''
+    if 'yolo_cam' in st.session_state: st.session_state['yolo_cam'] = None
+    if 'cnn_cam' in st.session_state: st.session_state['cnn_cam'] = None
     # Set kembali radio button agar kembali ke Upload File
     if 'yolo_source' in st.session_state: st.session_state['yolo_source'] = "📤 Upload File"
     if 'cnn_source' in st.session_state: st.session_state['cnn_source'] = "📤 Upload File"
@@ -176,6 +169,11 @@ def run_model_page(page_type):
     
     st.header(title)
     
+    # PERBAIKAN: Feedback lebih baik untuk halaman YOLO/Deteksi
+    if page_type == 'yolo':
+         st.info("⚠️ Model deteksi ini hanya dilatih untuk mendeteksi **Hotdog**.", icon="💡")
+
+
     model = model_loader()
     if not model: return
 
@@ -184,21 +182,21 @@ def run_model_page(page_type):
     source_key = f"{page_type}_source"
     upload_key = f"{page_type}_upload"
     url_key = f"{page_type}_url_input"
+    cam_key = f"{page_type}_cam"
 
     with st.sidebar:
         st.title("⚙️ Pengaturan")
         
         if page_type == 'cnn':
             st.markdown("---")
-            # Slider Confidence Threshold untuk CNN
             MIN_CONFIDENCE_THRESHOLD = st.slider("Min. Keyakinan Deteksi (CNN)", 0.0, 1.0, 0.85, 0.05, key="cnn_conf")
             st.info(f"Gambar di bawah {MIN_CONFIDENCE_THRESHOLD:.2%} akan ditolak.")
             
         st.markdown("---")
-        # PERBAIKAN: Hapus opsi "Pilih Contoh"
+        # Mengembalikan Kamera
         source_choice = st.radio(
             "Pilih sumber gambar:", 
-            ["📤 Upload File", "🔗 Input URL Gambar"], 
+            ["📤 Upload File", "📸 Ambil dari Kamera", "🔗 Input URL Gambar"], 
             key=source_key,
         )
 
@@ -208,33 +206,47 @@ def run_model_page(page_type):
         # 1. Upload File
         if source_choice == "📤 Upload File":
             uploaded_file = st.file_uploader("Pilih gambar...", type=["jpg", "jpeg", "png"], label_visibility="collapsed", key=upload_key)
-            if uploaded_file: image_bytes = uploaded_file.getvalue()
+            if uploaded_file: 
+                image_bytes = uploaded_file.getvalue()
+                st.session_state['selected_image_bytes'] = image_bytes
                 
-        # 2. Input URL Gambar
+        # 2. Ambil dari Kamera
+        elif source_choice == "📸 Ambil dari Kamera":
+            camera_input = st.camera_input("Arahkan kamera (Perlu HTTPS)", key=cam_key)
+            if camera_input: 
+                image_bytes = camera_input.getvalue()
+                st.session_state['selected_image_bytes'] = image_bytes
+
+        # 3. Input URL Gambar
         elif source_choice == "🔗 Input URL Gambar":
             url = st.text_input("Masukkan URL Gambar:", value=st.session_state.get(url_key, ''), key=url_key)
+            
+            # PERBAIKAN: Validasi URL harus berupa link web yang lengkap
             if url:
-                try:
-                    with st.spinner("Mengunduh gambar..."):
-                        response = requests.get(url, timeout=10)
-                        response.raise_for_status()
-                        
-                        content_type = response.headers.get('Content-Type', '').lower()
-                        if 'image' not in content_type:
-                            st.error("❌ URL tidak mengarah ke file gambar yang valid.", icon="⚠️")
-                        else:
-                            image_bytes = response.content
-                            # Simpan bytes dari URL ke session state agar tetap ada setelah rerun
-                            st.session_state['selected_image_bytes'] = image_bytes 
-                            st.success("✅ Gambar berhasil diunduh.", icon="🌐")
+                if not re.match(r'https?://[^\s/$.?#].[^\s]*$', url):
+                    st.error("❌ Masukkan URL web yang lengkap (diawali dengan http:// atau https://).", icon="⚠️")
+                    image_bytes = None # Pastikan bytes tidak terpakai jika URL invalid
+                else:
+                    try:
+                        with st.spinner("Mengunduh gambar..."):
+                            response = requests.get(url, timeout=10)
+                            response.raise_for_status()
                             
-                except requests.exceptions.Timeout:
-                     st.error("❌ Permintaan unduhan habis waktu (Timeout).", icon="⏳")
-                except requests.exceptions.RequestException as e:
-                    st.error(f"❌ Gagal mengunduh gambar. Pastikan URL benar dan publik. Error: {e}", icon="🔥")
+                            content_type = response.headers.get('Content-Type', '').lower()
+                            if 'image' not in content_type:
+                                st.error("❌ URL tidak mengarah ke file gambar yang valid.", icon="⚠️")
+                            else:
+                                image_bytes = response.content
+                                st.session_state['selected_image_bytes'] = image_bytes 
+                                st.success("✅ Gambar berhasil diunduh.", icon="🌐")
+                                
+                    except requests.exceptions.Timeout:
+                        st.error("❌ Permintaan unduhan habis waktu (Timeout).", icon="⏳")
+                    except requests.exceptions.RequestException as e:
+                        st.error(f"❌ Gagal mengunduh gambar. Pastikan URL benar dan publik.", icon="🔥")
 
-    # Ambil bytes gambar yang terakhir kali dipilih/diunggah dari session state
-    # Ini mengatasi masalah state hilang saat menggunakan text_input/file_uploader
+
+    # Ambil bytes gambar yang terakhir kali dipilih/diunggah/diambil
     if image_bytes is None:
          image_bytes = st.session_state.get('selected_image_bytes')
 
@@ -252,7 +264,7 @@ def run_model_page(page_type):
             st.subheader("🖼️ Gambar Asli")
             st.image(image, use_container_width=True)
             
-            # TAMBAHAN: Tombol Reset
+            # Tombol Reset
             if st.button("🗑️ Hapus Gambar & Reset", use_container_width=True, key=f"{page_type}_reset", on_click=clear_image_state):
                  st.rerun()
 
@@ -264,7 +276,6 @@ def run_model_page(page_type):
             with st.spinner("🧠 Menganalisis gambar..."):
                 if page_type == 'yolo':
                     results = model(image, conf=confidence_threshold)
-                    # Pastikan hasil plot adalah BGR sebelum diubah ke RGB
                     result_img_rgb = cv2.cvtColor(results[0].plot(), cv2.COLOR_BGR2RGB) 
                     with placeholder.container():
                         st.subheader("🎯 Hasil Deteksi")
@@ -275,7 +286,7 @@ def run_model_page(page_type):
                             for i, box in enumerate(boxes):
                                 st.success(f"**Objek {i+1}:** `{model.names[int(box.cls)]}` | **Keyakinan:** `{box.conf[0]:.2%}`", icon="✅")
                         else:
-                            st.warning("Tidak ada objek terdeteksi.", icon="⚠️")
+                            st.warning("Tidak ada objek terdeteksi. Model ini hanya mencari Hotdog.", icon="⚠️") # Feedback diperjelas
                 else:
                     # LOGIKA KLASIFIKASI CNN DENGAN THRESHOLDING
                     CLASS_NAMES_CNN = {0: "Cheetah 🐆", 1: "Hyena 🐕"}
@@ -304,7 +315,7 @@ def run_model_page(page_type):
                         else:
                             # 2. Prediksi ditolak (Keyakinan Rendah)
                             st.error("❌ Gambar Tidak Terdeteksi", icon="🚫")
-                            st.warning(f"Gambar tidak terdeteksi karena keyakinan tertinggi ({pred_prob:.2%}) berada di bawah ambang batas ({cnn_conf_threshold:.2%}).")
+                            st.warning(f"Gambar tidak terdeteksi karena keyakinan tertinggi ({pred_prob:.2%}) berada di bawah ambang batas ({cnn_conf_threshold:.2%}). Gambar mungkin bukan Cheetah atau Hyena (seperti pada kasus Hotdog).") # Feedback diperjelas
 
 
 # ================== ROUTER UTAMA APLIKASI ==================

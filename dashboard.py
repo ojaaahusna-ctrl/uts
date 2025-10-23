@@ -23,68 +23,69 @@ if 'page' not in st.session_state:
 if 'selected_image_bytes' not in st.session_state:
     st.session_state.selected_image_bytes = None
 
-# ================== STYLE KUSTOM (CSS) - TEMA "COOL MINT" (DIPERBAIKI UNTUK MODE TERANG & ALIGNMENT) ==================
+# ================== STYLE KUSTOM (CSS) - TEMA "COOL MINT" (FINAL) ==================
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Playfair+Display:wght=700&display=swap');
     
-    /* 1. MEMAKSA LATAR BELAKANG TERANG DAN TEMA COOL MINT */
+    /* 1. LATAR BELAKANG CERAH (COOL MINT) - MEMAKSA MODE TERANG */
     [data-testid="stAppViewContainer"] {
         background: linear-gradient(135deg, #E6FFFA 0%, #B2F5EA 100%);
-        color: #2D3748; /* Memastikan teks utama gelap */
+        color: #2D3748; 
     }
     /* Memastikan elemen latar Streamlit tidak menjadi hitam (Override Dark Mode) */
-    .stApp {
+    .stApp, .main, [data-testid="stSidebar"] {
         background: linear-gradient(135deg, #E6FFFA 0%, #B2F5EA 100%); 
+        color: #2D3748;
     }
-    /* Memastikan teks widget tidak hitam */
-    h1, h2, h3, h4, h5, h6, p, li, label, .stMarkdown, .stText, [data-testid^="st"] {
+    
+    /* 2. KONSISTENSI WARNA TULISAN GELAP */
+    h1, h2, h3, h4, h5, h6, p, li, label, .stMarkdown, .stText, 
+    [data-testid^="st"] label, 
+    [data-testid="stMarkdownContainer"],
+    .stTextInput > div > div > input, 
+    .stFileUploader, 
+    .stRadio > label 
+    {
         color: #2D3748 !important; 
     }
-    
-    /* 2. PEMUSATAN KONTEN UTAMA */
-    /* Container untuk memusatkan header dan menu di home page */
-    .centered-content {
+
+    /* 3. PEMUSATAN KONTEN UTAMA (HOME PAGE) */
+    /* Target div container yang membungkus home page */
+    #home-container {
         display: flex;
         flex-direction: column;
         align-items: center;
         text-align: center;
         width: 100%;
+        margin-top: 1rem;
     }
-    .centered-content > * {
-        max-width: 800px; /* Batasi lebar untuk estetika */
+    /* Membatasi lebar elemen di dalam container agar terlihat bagus saat terpusat */
+    #home-container > div {
+        max-width: 800px;
         width: 100%;
     }
-
+    
     [data-testid="stSidebar"] {
         background-color: #F0FFF4;
     }
+    /* Header di home page */
     .header {
-        /* Hapus margin-bottom agar div centered-content bisa mengambil alih */
         background-color: rgba(255, 255, 255, 0.5);
         backdrop-filter: blur(10px);
         padding: 2.5rem;
         border-radius: 20px;
         text-align: center;
         border: 1px solid rgba(255, 255, 255, 0.8);
-        margin-bottom: 2rem; /* Tambahkan kembali untuk pemisah */
+        margin-bottom: 2rem; 
     }
     .header h1 {
         font-family: 'Playfair Display', serif;
         color: #2D3748; 
         font-size: 3rem;
     }
-    .header p {
-        color: #4A5568; 
-        font-size: 1.2rem;
-    }
-    /* Sesuaikan kontainer menu untuk menampung columns */
-    .menu-container {
-        max-width: 800px; 
-        margin: 0 auto; /* Tengah di dalam centered-content */
-        display: block; /* Agar col1, col2 bisa diatur di dalamnya */
-    }
     
+    /* Card Menu */
     .menu-card {
         background-color: #FFFFFF;
         border: 1px solid #E2E8F0;
@@ -94,19 +95,11 @@ st.markdown("""
         transition: all 0.3s ease-in-out;
         height: 100%;
     }
-    .menu-card:hover {
-        transform: translateY(-8px);
-        box-shadow: 0 8px 30px rgba(49, 151, 149, 0.15);
-        border-color: #319795;
-    }
-    .menu-card h3 { 
-        color: #2C7A7B;
-        font-family: 'Playfair Display', serif; 
-    }
-    .menu-card p { color: #4A5568; }
+    
+    /* 4. STYLE TOMBOL DAN INPUT */
     .stButton>button {
         background-color: #319795;
-        color: white;
+        color: white; 
         border-radius: 10px;
         border: none;
         padding: 10px 20px;
@@ -115,7 +108,7 @@ st.markdown("""
     .stButton>button:hover {
         background-color: #2C7A7B;
     }
-    /* Perubahan warna background input agar lebih menyatu dengan tema */
+    /* Warna background input teks agar menyatu */
     div[data-baseweb="input"], div[data-baseweb="textarea"] {
         background-color: #FFFFFF !important;
         border-radius: 8px;
@@ -160,42 +153,44 @@ def reset_and_rerun():
 def home_page():
     """Menampilkan halaman menu utama."""
     
-    # Memastikan konten di tengah
-    st.markdown('<div class="centered-content">', unsafe_allow_html=True)
-    
-    st.markdown("""
-    <div class="header">
-        <h1>✨ VisionAI Dashboard ✨</h1>
-        <p>Platform Interaktif untuk Deteksi & Klasifikasi Gambar</p>
-    </div>
-    """, unsafe_allow_html=True)
+    # Bungkus seluruh konten di dalam st.container untuk pemusatan
+    with st.container(border=False):
+        # Menggunakan HTML/CSS untuk pemusatan
+        st.markdown('<div id="home-container">', unsafe_allow_html=True)
+        
+        st.markdown("""
+        <div class="header">
+            <h1>✨ VisionAI Dashboard ✨</h1>
+            <p>Platform Interaktif untuk Deteksi & Klasifikasi Gambar</p>
+        </div>
+        """, unsafe_allow_html=True)
 
-    st.subheader("Pilih Tugas yang Ingin Dilakukan:", anchor=False)
+        # Halaman subheader harus terpisah dari columns agar terpusat
+        st.subheader("Pilih Tugas yang Ingin Dilakukan:", anchor=False)
 
-    # Menggunakan container kustom untuk memastikan kolom tetap di tengah
-    st.markdown('<div class="menu-container">', unsafe_allow_html=True)
-    col1, col2 = st.columns(2)
-    with col1:
-        st.markdown('<div class="menu-card"><h3>🌭 Deteksi Objek</h3><p>Gunakan model YOLO untuk mendeteksi Hotdog vs Not-Hotdog.</p></div>', unsafe_allow_html=True)
-        if st.button("Mulai Deteksi", use_container_width=True, key="yolo_nav"):
-            st.session_state.page = 'yolo'
-            clear_image_state()
-            st.rerun()
-    with col2:
-        st.markdown('<div class="menu-card"><h3>🐆 Klasifikasi Gambar</h3><p>Gunakan model CNN untuk mengklasifikasikan Cheetah dan Hyena.</p></div>', unsafe_allow_html=True)
-        if st.button("Mulai Klasifikasi", use_container_width=True, key="cnn_nav"):
-            st.session_state.page = 'cnn'
-            clear_image_state()
-            st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True) # Tutup menu-container
-    
-    st.markdown("---")
-    # Memastikan info proyek juga terpusat
-    st.markdown('<div style="text-align: center; max-width: 800px; margin: 0 auto;">', unsafe_allow_html=True)
-    st.info("Proyek ini dibuat oleh **Balqis Isaura** sebagai bagian dari Ujian Tengah Semester.", icon="🎓")
-    st.markdown('</div>', unsafe_allow_html=True)
-    
-    st.markdown('</div>', unsafe_allow_html=True) # Tutup centered-content
+        # Menggunakan columns untuk menu
+        st.markdown('<div style="max-width: 800px;">', unsafe_allow_html=True) # Container pembatas lebar
+        col1, col2 = st.columns(2)
+        with col1:
+            st.markdown('<div class="menu-card"><h3>🌭 Deteksi Objek</h3><p>Gunakan model YOLO untuk mendeteksi Hotdog vs Not-Hotdog.</p></div>', unsafe_allow_html=True)
+            if st.button("Mulai Deteksi", use_container_width=True, key="yolo_nav"):
+                st.session_state.page = 'yolo'
+                clear_image_state()
+                st.rerun()
+        with col2:
+            st.markdown('<div class="menu-card"><h3>🐆 Klasifikasi Gambar</h3><p>Gunakan model CNN untuk mengklasifikasikan Cheetah dan Hyena.</p></div>', unsafe_allow_html=True)
+            if st.button("Mulai Klasifikasi", use_container_width=True, key="cnn_nav"):
+                st.session_state.page = 'cnn'
+                clear_image_state()
+                st.rerun()
+        st.markdown('</div>', unsafe_allow_html=True) # Tutup container pembatas lebar
+
+        st.markdown("---")
+        
+        # Info proyek
+        st.info("Proyek ini dibuat oleh **Balqis Isaura** sebagai bagian dari Ujian Tengah Semester.", icon="🎓")
+        
+        st.markdown('</div>', unsafe_allow_html=True) # Tutup home-container
 
 def run_model_page(page_type):
     """Fungsi generik untuk menjalankan halaman model (YOLO atau CNN)."""

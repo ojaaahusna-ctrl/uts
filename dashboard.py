@@ -4,6 +4,8 @@ import tensorflow as tf
 from PIL import Image
 import numpy as np
 import io
+import cv2
+import base64
 
 # ================== KONFIGURASI HALAMAN ==================
 st.set_page_config(
@@ -37,10 +39,12 @@ yolo_model, cnn_model = load_models()
 # ================== INISIALISASI SESSION STATE ==================
 if "uploaded_image" not in st.session_state:
     st.session_state.uploaded_image = None
+if "prediction_done" not in st.session_state:
+    st.session_state.prediction_done = False
 
 # ================== FUNGSI CNN ==================
 def predict_cnn(image):
-    img_resized = image.resize((128, 128))
+    img_resized = image.resize((128, 128))  # ukuran sesuai model CNN kamu
     img_array = np.array(img_resized) / 255.0
     img_array = np.expand_dims(img_array, axis=0)
     prediction = cnn_model.predict(img_array)
@@ -54,16 +58,17 @@ def predict_yolo(image):
     results = yolo_model.predict(source=img_bytes, conf=0.4, save=False)
     return results[0].plot()[:, :, ::-1]
 
-# ================== HALAMAN UTAMA ==================
+# ================== FITUR HALAMAN UTAMA ==================
 def show_main_page():
     st.markdown("#### 🚀 Unggah Gambar untuk Mulai Analisis")
     uploaded_image = st.file_uploader("Pilih gambar (JPG/PNG):", type=["jpg", "jpeg", "png"])
 
     if uploaded_image is not None:
         st.session_state.uploaded_image = uploaded_image
+        st.session_state.prediction_done = False
         st.experimental_rerun()
 
-# ================== HALAMAN HASIL DETEKSI ==================
+# ================== FITUR HASIL DETEKSI ==================
 def show_result_page():
     uploaded_image = st.session_state.uploaded_image
     image = Image.open(uploaded_image)
@@ -87,12 +92,10 @@ def show_result_page():
         else:
             st.error("Model CNN belum siap.")
 
-    # Info hanya satu ikon 💡
-    st.info("💡 Model ini hanya mengenali **Cheetah** dan **Hyena**. Gunakan slider di sidebar untuk mengatur ambang keyakinan.")
-
-    # Tombol kembali
+    # Tombol Hapus (tanpa rerun)
     if st.button("🗑️ Hapus Gambar dan Kembali"):
         st.session_state.uploaded_image = None
+        st.session_state.prediction_done = False
         show_main_page()
 
 # ================== RENDER HALAMAN ==================

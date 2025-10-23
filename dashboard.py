@@ -155,12 +155,11 @@ def clear_image_state():
     """Fungsi untuk membersihkan state gambar yang dipilih."""
     st.session_state['selected_image_bytes'] = None
     
-# --- GANTI FUNGSI reset_and_rerun LAMA ANDA DENGAN YANG INI ---
+# --- INI ADALAH FUNGSI BARU UNTUK FIX POIN 1 & 3 ---
 def reset_and_rerun():
     """Merupakan kombinasi reset state kustom dan pengaturan ulang state widget."""
-    clear_image_state()
+    clear_image_state() # Ini membersihkan st.session_state['selected_image_bytes']
     
-    # --- PERBAIKAN LOGIKA ERROR SAAT HAPUS (POIN 1 & 3) ---
     current_page = st.session_state.get('page', 'home') 
     
     if current_page == 'yolo' or current_page == 'cnn':
@@ -168,21 +167,22 @@ def reset_and_rerun():
         url_key = f"{current_page}_url_input"
         upload_key = f"{current_page}_upload" # Kunci untuk file uploader
 
-        # Periksa sumber yang sedang dipilih
+        # Periksa sumber mana yang SEDANG AKTIF (terpilih di radio button)
         if source_key in st.session_state:
             selected_source = st.session_state[source_key]
 
-            # 1. Jika sumbernya URL, reset text_input
-            if selected_source == "🔗 Input URL Gambar":
+            # 1. Jika radio button sedang di "Upload File", kosongkan file_uploader (FIX POIN 1)
+            if selected_source == "📤 Upload File":
+                if upload_key in st.session_state:
+                    st.session_state[upload_key] = None 
+            
+            # 2. Jika radio button sedang di "Input URL", kosongkan text_input (FIX POIN 3)
+            elif selected_source == "🔗 Input URL Gambar":
                 if url_key in st.session_state:
                     st.session_state[url_key] = ''
             
-            # 2. Jika sumbernya Upload File, reset file_uploader (INI FIX POIN 1)
-            elif selected_source == "📤 Upload File":
-                if upload_key in st.session_state:
-                    st.session_state[upload_key] = None # Mengosongkan file uploader
+            # 3. Jika radio button sedang di "Kamera", tidak perlu reset apa-apa
     
-    # --- AKHIR PERBAIKAN ---
     st.rerun()
 # --- AKHIR FUNGSI BARU ---
 
@@ -279,7 +279,7 @@ def run_model_page(page_type):
             st.markdown("---")
             MIN_CONFIDENCE_THRESHOLD = st.slider("Min. Keyakinan Deteksi (CNN)", 0.0, 1.0, 0.85, 0.05, key="cnn_conf")
             
-            # --- UBAH st.info MENJADI st.warning ---
+            # --- Teks Peringatan CNN yang Lebih Baik ---
             st.warning(f"""
             **Gunakan slider ini untuk 'menyaring' hasil.**
             
@@ -392,7 +392,7 @@ def run_model_page(page_type):
                             for i, box in enumerate(boxes):
                                 st.success(f"**Objek {i+1}:** `{model.names[int(box.cls)]}` | **Keyakinan:** `{box.conf[0]:.2%}`", icon="✅")
                         else:
-                            # --- PERBAIKAN POIN 2 (Not-Hotdog) ---
+                            # --- INI ADALAH FIX UNTUK POIN 2 (NOT-HOTDOG) ---
                             st.success("✅ **Hasil: Not-Hotdog.**\n\nModel tidak menemukan objek 'Hotdog' pada gambar ini.", icon="👍")
                             # --- AKHIR PERBAIKAN ---
                 else:
